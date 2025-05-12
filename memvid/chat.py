@@ -140,6 +140,10 @@ class FrameRecallChat:
     def _generate_context_response(self, context_chunks: List[str]) -> str:
         if not context_chunks:
             return "No relevant information found in the archive."
+        
+        avg_chunk_length = sum(len(chunk) for chunk in context_chunks) / len(context_chunks)
+        if avg_chunk_length < 50:  
+            return "I couldn't find any relevant information about that topic in the knowledge base."
 
         reply = "From memory archive, the following points emerged:\n\n"
         for i, chunk in enumerate(context_chunks[:3]):
