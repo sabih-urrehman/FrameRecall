@@ -5,6 +5,7 @@ Football data memory demo using chat_with_memory
 
 import sys
 import os
+from memvid.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from framerecall import FrameRecallEncoder, chat_with_memory
@@ -34,7 +35,7 @@ football_facts = [
 ]
 
 # Output paths
-video_output = "output/soccer_memory.mp4"
+video_output = "output/soccer_memory.{VIDEO_FILE_TYPE}"
 index_output = "output/soccer_memory_index.json"
 
 # Prepare folder for chat sessions

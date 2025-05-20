@@ -5,7 +5,7 @@ Example: Interactive conversation using MemvidChat (Fixed)
 
 import sys
 import os
-
+from memvid.config import VIDEO_FILE_TYPE
 # Set environment variable before importing transformers
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
@@ -30,7 +30,7 @@ def main():
     print("=" * 50)
     
     # Check if memory files exist
-    video_file = "output/memory.mp4"
+    video_file = "output/memory.{VIDEO_FILE_TYPE}"
     index_file = "output/memory_index.json"
     
     if not os.path.exists(video_file) or not os.path.exists(index_file):

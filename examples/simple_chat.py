@@ -5,6 +5,7 @@ Minimalistic chat interface with FrameRecall memory
 
 import sys
 import os
+from memvid.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from framerecall import chat_with_memory, quick_chat
@@ -13,7 +14,7 @@ def main():
     print("FrameRecall Quick Interaction Examples")
     print("=" * 50)
 
-    memory_video = "output/memory.mp4"
+    memory_video = "output/memory.{VIDEO_FILE_TYPE}"
     memory_index = "output/memory_index.json"
 
     # Verify memory data presence
