@@ -296,7 +296,7 @@ User question: {message}"""
             'max_history': self.max_history
         }
 
-    # Backwards compatibility aliasesAdd commentMore actions
+    # Backwards compatibility aliases
     def chat_with_memory(video_file: str, index_file: str, api_key: str = None,
                         provider: str = 'google', model: str = None):
         chat = FrameRecallChat(
