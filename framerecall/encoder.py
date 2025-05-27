@@ -1,0 +1,146 @@
+
+
+import json
+import logging
+from pathlib import Path
+from typing import List, Optional, Dict, Any
+from tqdm import tqdm
+import cv2
+import numpy as np
+
+from .utils import encode_to_qr, qr_to_frame, create_video_writer, chunk_text
+from .index import IndexManager
+from .config import get_default_config
+
+logger = logging.getLogger(__name__)
+
+
+class FramerecallEncoder:
+    
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        
+        self.config = config or get_default_config()
+        self.chunks = []
+        self.index_manager = IndexManager(self.config)
+        
+    def add_chunks(self, chunks: List[str]):
+        
+        self.chunks.extend(chunks)
+        logger.info(f"Added {len(chunks)} chunks. Total: {len(self.chunks)}")
+    
+    def add_text(self, text: str, chunk_size: int = 500, overlap: int = 50):
+        
+        chunks = chunk_text(text, chunk_size, overlap)
+        self.add_chunks(chunks)
+    
+    def build_video(self, output_file: str, index_file: str, 
+                    show_progress: bool = True) -> Dict[str, Any]:
+        
+        if not self.chunks:
+            raise ValueError("No chunks to encode. Use add_chunks() first.")
+        
+        output_path = Path(output_file)
+        index_path = Path(index_file)
+        
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"Building video with {len(self.chunks)} chunks")
+        
+
+        video_config = self.config["video"]
+        writer = create_video_writer(str(output_path), video_config)
+        
+        frame_numbers = []
+        
+        try:
+
+            chunks_iter = enumerate(self.chunks)
+            if show_progress:
+                chunks_iter = tqdm(chunks_iter, total=len(self.chunks), desc="Encoding chunks to video")
+            
+            for frame_num, chunk in chunks_iter:
+
+                chunk_data = {
+                    "id": frame_num,
+                    "text": chunk,
+                    "frame": frame_num
+                }
+                
+
+                qr_image = encode_to_qr(json.dumps(chunk_data), self.config)
+                
+
+                frame = qr_to_frame(qr_image, (video_config["frame_width"], video_config["frame_height"]))
+                
+
+                writer.write(frame)
+                frame_numbers.append(frame_num)
+            
+
+            logger.info("Building search index...")
+            self.index_manager.add_chunks(self.chunks, frame_numbers, show_progress)
+            
+
+            self.index_manager.save(str(index_path.with_suffix('')))
+            
+
+            stats = {
+                "total_chunks": len(self.chunks),
+                "total_frames": len(frame_numbers),
+                "video_file": str(output_path),
+                "index_file": str(index_path),
+                "video_size_mb": output_path.stat().st_size / (1024 * 1024) if output_path.exists() else 0,
+                "fps": video_config["fps"],
+                "duration_seconds": len(frame_numbers) / video_config["fps"],
+                "index_stats": self.index_manager.get_stats()
+            }
+            
+            logger.info(f"Successfully built video: {output_path}")
+            logger.info(f"Video duration: {stats['duration_seconds']:.1f} seconds")
+            logger.info(f"Video size: {stats['video_size_mb']:.1f} MB")
+            
+            return stats
+            
+        finally:
+            writer.release()
+    
+    def clear(self):
+        
+        self.chunks = []
+        self.index_manager = IndexManager(self.config)
+        logger.info("Cleared all chunks")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        
+        return {
+            "total_chunks": len(self.chunks),
+            "total_characters": sum(len(chunk) for chunk in self.chunks),
+            "avg_chunk_size": np.mean([len(chunk) for chunk in self.chunks]) if self.chunks else 0,
+            "config": self.config
+        }
+    
+    @classmethod
+    def from_file(cls, file_path: str, chunk_size: int = 500, 
+                  overlap: int = 50, config: Optional[Dict[str, Any]] = None) -> 'FramerecallEncoder':
+        
+        encoder = cls(config)
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+        
+        encoder.add_text(text, chunk_size, overlap)
+        return encoder
+    
+    @classmethod
+    def from_documents(cls, documents: List[str], chunk_size: int = 500,
+                      overlap: int = 50, config: Optional[Dict[str, Any]] = None) -> 'FramerecallEncoder':
+        
+        encoder = cls(config)
+        
+        for doc in documents:
+            encoder.add_text(doc, chunk_size, overlap)
+        
+        return encoder
