@@ -5,18 +5,20 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="framerecall",
-    version="0.1.0",
+    version="0.1.2",
     author="Framerecall Team",
     author_email="team@framerecall.ai",
-    description="QR code Searchable video memory for LLMs. Slice embed and query millions of frames in seconds.",
+    description="Searchable video memory for llms. slice embed and query millions of frames in seconds.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/framerecall-org/framerecall",
+    url="https://github.com/sabih-urrehman/framerecall",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Multimedia :: Video",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
@@ -26,15 +28,16 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
-        "qrcode[pil]>=8.0",
-        "opencv-python>=4.11.0",
-        "pyzbar>=0.1.9",
-        "sentence-transformers>=4.0.0",
-        "numpy>=2.0.0",
+        "qrcode[pil]>=7.3",
+        "opencv-python>=4.5.0",
+        "opencv-contrib-python>=4.5.0",
+        "sentence-transformers>=2.2.0",
+        "numpy>=1.21.0,<2.0.0",
         "openai>=1.0.0",
-        "tqdm>=4.67.0",
-        "faiss-cpu>=1.11.0",
-        "Pillow>=11.0.0",
+        "tqdm>=4.50.0",
+        "faiss-cpu>=1.7.0",
+        "Pillow>=9.0.0",
+        "python-dotenv>=0.19.0",
     ],
     extras_require={
         "dev": [
@@ -42,6 +45,9 @@ setup(
             "pytest-cov>=4.0.0",
             "black>=23.0.0",
             "flake8>=6.0.0",
+        ],
+        "pdf": [
+            "PyPDF2==3.0.1",
         ],
         "web": [
             "fastapi>=0.100.0",

@@ -11,6 +11,7 @@ from .config import get_default_config
 
 logger = logging.getLogger(__name__)
 
+
 try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
@@ -156,6 +157,12 @@ class FramerecallChat:
         
         if not context_chunks:
             return "I couldn't find any relevant information in the knowledge base."
+        
+
+
+        avg_chunk_length = sum(len(chunk) for chunk in context_chunks) / len(context_chunks)
+        if avg_chunk_length < 50:
+            return "I couldn't find any relevant information about that topic in the knowledge base."
         
         response = "Based on the knowledge base, here's what I found:\n\n"
         for i, chunk in enumerate(context_chunks[:3]):

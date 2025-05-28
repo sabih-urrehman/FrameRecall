@@ -6,7 +6,6 @@ import qrcode
 import cv2
 import numpy as np
 from PIL import Image
-from pyzbar import pyzbar
 from typing import List, Tuple, Optional, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from functools import lru_cache
@@ -52,10 +51,13 @@ def encode_to_qr(data: str, config: Optional[Dict[str, Any]] = None) -> Image.Im
 def decode_qr(image: np.ndarray) -> Optional[str]:
     
     try:
-        decoded_objects = pyzbar.decode(image)
-        if decoded_objects:
-            data = decoded_objects[0].data.decode('utf-8')
-            
+
+        detector = cv2.QRCodeDetector()
+        
+
+        data, bbox, straight_qrcode = detector.detectAndDecode(image)
+        
+        if data:
 
             if data.startswith("GZ:"):
                 compressed_data = base64.b64decode(data[3:])
