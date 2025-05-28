@@ -20,7 +20,7 @@ def main():
         return
     
 
-    api_key = "your-api-key-here"
+    api_key = "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"
     if not api_key:
         print("\nNote: Set OPENAI_API_KEY environment variable for full LLM responses.")
         print("Without it, you'll only see raw context chunks.\n")

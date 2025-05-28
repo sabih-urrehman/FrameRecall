@@ -3,9 +3,6 @@
 
 import sys
 import os
-
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from framerecall import FramerecallChat
@@ -39,7 +36,7 @@ def main():
     print(f"\nLoading memory from: {video_file}")
     
 
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    api_key = "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"
     if not api_key:
         print("\nNote: No OpenAI API key found. Chat will work in context-only mode.")
         print("Set OPENAI_API_KEY environment variable to enable full chat capabilities.")

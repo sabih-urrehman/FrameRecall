@@ -1,0 +1,279 @@
+Metadata-Version: 2.4
+Name: framerecall
+Version: 0.1.2
+Summary: Searchable video memory for llms. slice embed and query millions of frames in seconds.
+Home-page: https://github.com/sabih-urrehman/framerecall
+Author: Framerecall Team
+Author-email: team@framerecall.ai
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Multimedia :: Video
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: qrcode[pil]>=7.3
+Requires-Dist: opencv-python>=4.5.0
+Requires-Dist: opencv-contrib-python>=4.5.0
+Requires-Dist: sentence-transformers>=2.2.0
+Requires-Dist: numpy<2.0.0,>=1.21.0
+Requires-Dist: openai>=1.0.0
+Requires-Dist: tqdm>=4.50.0
+Requires-Dist: faiss-cpu>=1.7.0
+Requires-Dist: Pillow>=9.0.0
+Requires-Dist: python-dotenv>=0.19.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Provides-Extra: pdf
+Requires-Dist: PyPDF2==3.0.1; extra == "pdf"
+Provides-Extra: web
+Requires-Dist: fastapi>=0.100.0; extra == "web"
+Requires-Dist: gradio>=4.0.0; extra == "web"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+
+**The lightweight, game-changing solution for AI memory at scale**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
+Framerecall revolutionizes AI memory management by encoding text data into videos, enabling **lightning-fast semantic search** across millions of text chunks with **sub-second retrieval times**. Unlike traditional vector databases that consume massive amounts of RAM and storage, Framerecall compresses your knowledge base into compact video files while maintaining instant access to any piece of information.
+
+
+- **Video as Database**: Store millions of text chunks in a single MP4 file
+- **Instant Retrieval**: Sub-second semantic search across massive datasets
+- **10x Storage Efficiency**: Video compression reduces memory footprint dramatically
+- **Zero Infrastructure**: No database servers, just files you can copy anywhere
+- **Offline-First**: Works completely offline once videos are generated
+
+- **Minimal Dependencies**: Core functionality in ~1000 lines of Python
+- **CPU-Friendly**: Runs efficiently without GPU requirements
+- **Portable**: Single video file contains your entire knowledge base
+- **Streamable**: Videos can be streamed from cloud storage
+
+
+```bash
+sudo apt-get install libzbar0
+
+brew install zbar
+
+```
+
+```bash
+pip install framerecall
+```
+
+```bash
+git clone https://github.com/yourusername/framerecall.git
+cd framerecall
+pip install -e .
+```
+
+```bash
+python -m venv .framerecall
+source .framerecall/bin/activate
+
+pip install -e ".[dev]"
+```
+
+
+```python
+from framerecall import FramerecallEncoder, FramerecallChat
+
+chunks = ["Important fact 1", "Important fact 2", "Historical event details", ...]
+encoder = FramerecallEncoder()
+encoder.add_chunks(chunks)
+encoder.build_video("memory.mp4", "memory_index.json")
+
+chat = FramerecallChat("memory.mp4", "memory_index.json")
+chat.start_session()
+response = chat.chat("What do you know about historical events?")
+print(response)
+```
+
+```python
+from framerecall import FramerecallEncoder
+import os
+
+encoder = FramerecallEncoder(chunk_size=512, overlap=50)
+
+for file in os.listdir("documents"):
+    with open(f"documents/{file}", "r") as f:
+        encoder.add_text(f.read(), metadata={"source": file})
+
+encoder.build_video(
+    "knowledge_base.mp4",
+    "knowledge_index.json",
+    fps=30,
+    frame_size=512
+)
+```
+
+```python
+from framerecall import FramerecallRetriever
+
+retriever = FramerecallRetriever("knowledge_base.mp4", "knowledge_index.json")
+
+results = retriever.search("machine learning algorithms", top_k=5)
+for chunk, score in results:
+    print(f"Score: {score:.3f} | {chunk[:100]}...")
+
+context = retriever.get_context("explain neural networks", max_tokens=2000)
+print(context)
+```
+
+```python
+from framerecall import FramerecallInteractive
+
+interactive = FramerecallInteractive("knowledge_base.mp4", "knowledge_index.json")
+interactive.run()
+```
+
+
+| Dataset Size | Encoding Time | Search Time | Storage Size | RAM Usage |
+|-------------|--------------|-------------|--------------|-----------|
+| 10K chunks | 45 seconds | 0.05s | 12 MB | 50 MB |
+| 100K chunks | 8 minutes | 0.15s | 120 MB | 200 MB |
+| 1M chunks | 80 minutes | 0.8s | 1.2 GB | 800 MB |
+| 10M chunks | 13 hours | 1.5s | 12 GB | 2 GB |
+
+*Benchmarked on Intel i7-9700K, 16GB RAM, SSD storage*
+
+
+```python
+encoder = FramerecallEncoder(
+    chunk_size=512,
+    overlap=50,
+    model_name='all-MiniLM-L6-v2'
+)
+
+encoder.add_chunks(chunks: List[str], metadata: List[dict] = None)
+encoder.add_text(text: str, metadata: dict = None)
+encoder.build_video(video_path: str, index_path: str, fps: int = 30, qr_size: int = 512)
+```
+
+```python
+retriever = FramerecallRetriever(
+    video_path: str,
+    index_path: str,
+    cache_size: int = 100
+)
+
+results = retriever.search(query: str, top_k: int = 5)
+context = retriever.get_context(query: str, max_tokens: int = 2000)
+chunks = retriever.get_chunks_by_ids(chunk_ids: List[int])
+```
+
+```python
+chat = FramerecallChat(
+    video_path: str,
+    index_path: str,
+    llm_backend: str = 'openai',
+    model: str = 'gpt-4'
+)
+
+chat.start_session(system_prompt: str = None)
+response = chat.chat(message: str, stream: bool = False)
+chat.clear_history()
+chat.export_conversation(path: str)
+```
+
+
+```python
+from sentence_transformers import SentenceTransformer
+
+custom_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+encoder = FramerecallEncoder(embedding_model=custom_model)
+```
+
+```python
+encoder.build_video(
+    "compressed.mp4",
+    "index.json",
+    fps=60,
+    frame_size=256,
+    video_codec='h265',
+    crf=28
+)
+```
+
+```python
+encoder = FramerecallEncoder(n_workers=8)
+encoder.add_chunks_parallel(massive_chunk_list)
+```
+
+
+
+**Video Decode Errors**
+```bash
+encoder.build_video(..., error_correction='H')
+```
+
+**Memory Issues with Large Datasets**
+```python
+encoder = FramerecallEncoder(streaming=True)
+for batch in chunk_generator():
+    encoder.add_chunks_batch(batch)
+```
+
+**Slow Search Performance**
+```python
+retriever.warm_cache(common_queries=['AI', 'machine learning', 'data'])
+```
+
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+```bash
+pytest tests/
+
+pytest
+
+black framerecall/
+```
+
+
+Check out the [examples/](examples/) directory for:
+- Building memory from Wikipedia dumps
+- Creating a personal knowledge base
+- Multi-language support
+- Real-time memory updates
+- Integration with popular LLMs
+
+
+- [Documentation](https://framerecall.readthedocs.io)
+- [PyPI Package](https://pypi.org/project/framerecall)
+- [GitHub Repository](https://github.com/yourusername/framerecall)
+- [Discord Community](https://discord.gg/framerecall)
+
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+
+Built with ❤️ using:
+- [sentence-transformers](https://www.sbert.net/) for embeddings
+- [OpenCV](https://opencv.org/) for video processing
+- [qrcode](https://github.com/lincolnloop/python-qrcode) & [pyzbar](https://github.com/NaturalHistoryMuseum/pyzbar) for data encoding
+
+
+**Ready to revolutionize your AI memory management? Install Framerecall and start building!** 🚀
