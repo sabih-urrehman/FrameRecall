@@ -3,6 +3,9 @@
 
 import sys
 import os
+
+from framerecall.config import VIDEO_FILE_TYPE
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from framerecall import FramerecallEncoder, chat_with_memory
@@ -30,7 +33,7 @@ soccer_chunks = [
     "Neymar's €222 million transfer from Barcelona to PSG in 2017 is still the world record."
 ]
 
-video_path = "output/soccer_memory.mp4"
+video_path = f"output/soccer_memory.{VIDEO_FILE_TYPE}"
 index_path = "output/soccer_memory_index.json"
 
 os.makedirs("output/soccer_chat", exist_ok=True)
