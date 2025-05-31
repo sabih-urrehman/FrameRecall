@@ -3,6 +3,9 @@
 
 import sys
 import os
+
+from framerecall.config import VIDEO_FILE_TYPE
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from framerecall import FramerecallChat
@@ -24,7 +27,7 @@ def main():
     print("=" * 50)
     
 
-    video_file = "output/memory.mp4"
+    video_file = f"output/memory.{VIDEO_FILE_TYPE}"
     index_file = "output/memory_index.json"
     
     if not os.path.exists(video_file) or not os.path.exists(index_file):
