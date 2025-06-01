@@ -4,7 +4,6 @@ import os
 import time
 from typing import Optional, Dict, Any
 from .chat import FramerecallChat
-from .config import VIDEO_FILE_TYPE
 
 
 def chat_with_memory(

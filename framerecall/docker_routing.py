@@ -16,11 +16,10 @@ class DockerBackend:
     DOCKER_CODECS = {
         'h265', 'hevc', 'libx265',
         'h264', 'avc', 'libx264',
-        'vp9', 'libvpx-vp9',
         'av1', 'libaom-av1'
     }
 
-    def __init__(self, container_name="framerecall-h265", verbose=True):
+    def __init__(self, container_name="framerecall", verbose=True):
         self.container_name = container_name
         self.verbose = verbose
         self.docker_cmd = None
@@ -182,7 +181,7 @@ class DockerBackend:
                 "-v", f"{temp_str}:/data",
                 "-v", f"{scripts_path}:/scripts",
                 self.container_name,
-                "python3", "/scripts/h265_encode_optimized.py",
+                "python3", "/scripts/dockerized_encoder.py",
                 "chunks.json", "output.mp4"
             ]
 

@@ -14,20 +14,16 @@ from tqdm import tqdm
 import base64
 import gzip
 
-from .config import get_default_config
+from .config import get_default_config, codec_parameters
 
 logger = logging.getLogger(__name__)
 
 
-def encode_to_qr(data: str, config: Optional[Dict[str, Any]] = None) -> Image.Image:
+def encode_to_qr(data: str) -> Image.Image:
     
-    if config is None:
-        config = get_default_config()["qr"]
-    else:
 
-        default_qr_config = get_default_config()["qr"]
-        config = {**default_qr_config, **config.get("qr", config)}
-    
+    config = get_default_config()["qr"]
+
 
     if len(data) > 100:
         compressed = gzip.compress(data.encode())
@@ -72,14 +68,17 @@ def decode_qr(image: np.ndarray) -> Optional[str]:
 def create_video_writer(output_path: str, config: Optional[Dict[str, Any]] = None) -> cv2.VideoWriter:
     
     if config is None:
-        config = get_default_config()["video"]
+        config = get_default_config()
+
+    codec = config["codec"]
+    codec_parameters = config["codec_parameters"]
     
-    fourcc = cv2.VideoWriter_fourcc(*config["codec"])
+    fourcc = cv2.VideoWriter_fourcc(*codec)
     return cv2.VideoWriter(
         output_path,
         fourcc,
-        config["fps"],
-        (config["frame_width"], config["frame_height"])
+        codec_parameters["video_fps"],
+        (codec_parameters["frame_width"], codec_parameters["frame_height"])
     )
 
 
