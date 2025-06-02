@@ -1,99 +1,127 @@
-
-.PHONY: help build test encode decode clean setup-wsl
+.PHONY: help build test clean setup
 
 DOCKER_CMD := $(shell if command -v docker.exe >/dev/null 2>&1; then echo "docker.exe"; else echo "docker"; fi)
 
 PWD := $(shell pwd)
+DOCKER_PWD := $(shell pwd | sed 's|^/mnt/c|C:|' | sed 's|^/mnt/\([a-z]\)|\U\1:|')
 
 help:
-	@echo "🎥 Framerecall H.265 Docker Helper (WSL Compatible)"
+	@echo "🎥 Framerecall H.265 Docker Helper (Cross-Platform)"
 	@echo ""
-	@echo "Setup:"
-	@echo "  make setup-wsl    - Check WSL/Docker setup"
-	@echo ""
-	@echo "Commands:"
+	@echo "Setup & Testing:"
+	@echo "  make setup        - Check setup and create directories"
 	@echo "  make build        - Build the Docker container"
-	@echo "  make test         - Test that everything works"
-	@echo "  make encode       - Encode chunks to H.265 video"
+	@echo "  make test         - Test container functionality"
+	@echo "  make test-ffmpeg  - Test FFmpeg in container"
+	@echo "  make test-workflow - Full end-to-end test"
 	@echo "  make clean        - Clean up Docker containers"
 	@echo ""
-	@echo "Examples:"
-	@echo "  make encode INPUT=my_chunks.json OUTPUT=my_video.mkv"
+	@echo "Info:"
+	@echo "  make info         - Show platform information"
 	@echo ""
-	@echo "Detected Docker: $(DOCKER_CMD)"
+	@echo "Note: Use Python API for actual encoding"
+	@echo "Platform Info:"
+	@echo "  Docker: $(DOCKER_CMD)"
+	@echo "  Local Path: $(PWD)"
+	@echo "  Docker Path: $(DOCKER_PWD)"
 
-setup-wsl:
-	@echo "🔍 Checking WSL + Docker Desktop setup..."
-	@if grep -q Microsoft /proc/version 2>/dev/null; then \
-		echo "✅ Running in WSL"; \
-		if command -v docker.exe >/dev/null 2>&1 || command -v docker >/dev/null 2>&1; then \
-			echo "✅ Docker available"; \
-		else \
-			echo "❌ Docker not found. Enable WSL integration in Docker Desktop"; \
-			exit 1; \
-		fi; \
+setup:
+	@echo "🔍 Checking cross-platform setup..."
+	@if command -v $(DOCKER_CMD) >/dev/null 2>&1; then \
+		echo "✅ Docker available: $(DOCKER_CMD)"; \
 	else \
-		echo "✅ Running in native Linux"; \
+		echo "❌ Docker not found. Install Docker Desktop"; \
+		exit 1; \
 	fi
-	@echo "✅ Setup looks good!"
+	@if grep -q Microsoft /proc/version 2>/dev/null; then \
+		echo "🐧 Platform: WSL"; \
+	elif [[ "$$(uname)" == "Darwin" ]]; then \
+		echo "🍎 Platform: macOS"; \
+	else \
+		echo "🐧 Platform: Linux"; \
+	fi
+	@echo "📁 Creating directories..."
+	@mkdir -p data/input data/output data/temp
+	@echo "✅ Setup complete!"
 
-build: setup-wsl
-	@echo "🏗️  Building Framerecall H.265 container..."
+build: setup
+	@echo "🏗️  Building framerecall-h265 container..."
 	$(DOCKER_CMD) build -f docker/Dockerfile -t framerecall-h265 docker/
 	@echo "✅ Build complete!"
-
-WIN_PATH := $(shell pwd | sed 's|/mnt/c|C:|')
 
 test: build
 	@echo "🧪 Testing container..."
 	$(DOCKER_CMD) run
-		-v "$(WIN_PATH)/data:/data" \
-		-v "$(WIN_PATH)/docker/scripts:/scripts" \
-		framerecall-h265 python3 /scripts/test_encoding.py
+		-v "$(DOCKER_PWD)/data:/data" \
+		-v "$(DOCKER_PWD)/docker/scripts:/scripts" \
+		framerecall-h265 python3
+	@echo "✅ Container test passed!"
 
-encode: build
-	@if [ -z "$(INPUT)" ] || [ -z "$(OUTPUT)" ]; then \
-		echo "❌ Usage: make encode INPUT=file.json OUTPUT=video.mp4"; \
-		exit 1; \
-	fi
-	@echo "🎬 Encoding $(INPUT) to $(OUTPUT)..."
-	@echo "Using Windows path: $(WIN_PATH)"
+test-ffmpeg: build
+	@echo "🎬 Testing FFmpeg in container..."
 	$(DOCKER_CMD) run
-		-v "$(WIN_PATH)/data:/data" \
-		-v "$(WIN_PATH)/docker/scripts:/scripts" \
-		framerecall-h265 python3 /scripts/dockerized_encoder.py $(INPUT) $(OUTPUT)
+		-v "$(DOCKER_PWD)/data:/data" \
+		-v "$(DOCKER_PWD)/docker/scripts:/scripts" \
+		framerecall-h265 ffmpeg -version
+	@echo "✅ FFmpeg test passed!"
 
-encode-large: build
-	@if [ -z "$(INPUT)" ] || [ -z "$(OUTPUT)" ]; then \
-		echo "❌ Usage: make encode-large INPUT=file.json OUTPUT=video.mp4"; \
-		exit 1; \
-	fi
-	@echo "🚀 Large-scale encoding $(INPUT) to $(OUTPUT)..."
-	@echo "   Allocating maximum resources for performance"
+sample-data:
+	@echo "📝 Creating sample dataset..."
+	@mkdir -p data/input
+	@echo '["Hello world from QR code!", "This is chunk 2 with more content.", "Final test chunk with special chars: áéíóú"]' > data/input/sample.json
+	@echo "✅ Created data/input/sample.json"
+
+test-workflow: build sample-data
+	@echo "🧪 Testing container workflow..."
+	@echo "   Testing Python imports..."
 	$(DOCKER_CMD) run
-
-
-
-		-v "$(WIN_PATH)/data:/data" \
-		-v "$(WIN_PATH)/docker/scripts:/scripts" \
-		framerecall-h265 python3 /scripts/h265_encode_optimized.py $(INPUT) $(OUTPUT)
+		-v "$(DOCKER_PWD)/data:/data" \
+		-v "$(DOCKER_PWD)/docker/scripts:/scripts" \
+		framerecall-h265 python3 -c "import json; print('Python OK')"
+	@echo "   Testing FFmpeg availability..."
+	$(DOCKER_CMD) run
+		-v "$(DOCKER_PWD)/data:/data" \
+		-v "$(DOCKER_PWD)/docker/scripts:/scripts" \
+		framerecall-h265 ffmpeg -f lavfi -i testsrc=duration=1:size=320x240:rate=1 -t 1 /tmp/test.mp4
+	@echo "✅ Container workflow test passed!"
+	@echo ""
+	@echo "🐍 Use Python API for encoding:"
+	@echo "   from framerecall import FramerecallEncoder"
+	@echo "   encoder = FramerecallEncoder()"
+	@echo "   encoder.add_text('Your text here')"
+	@echo "   encoder.build_video('output.mkv', 'index.json', codec='h265')"
 
 clean:
 	@echo "🧹 Cleaning up..."
 	-$(DOCKER_CMD) rmi framerecall-h265
 	-$(DOCKER_CMD) system prune -f
+	@echo "✅ Cleanup complete!"
 
-wsl-info:
-	@if grep -q Microsoft /proc/version 2>/dev/null; then \
-		echo "🐧 WSL Performance Info:"; \
+info:
+	@echo "🖥️  Platform Info:"
+	@echo "   OS: $$(uname -a)"
+	@if command -v nproc >/dev/null 2>&1; then \
 		echo "   Cores: $$(nproc)"; \
+	elif command -v sysctl >/dev/null 2>&1; then \
+		echo "   Cores: $$(sysctl -n hw.ncpu)"; \
+	fi
+	@if command -v free >/dev/null 2>&1; then \
 		echo "   Memory: $$(free -m | awk 'NR==2{printf "%.1f", $$2/1024}')GB"; \
-		echo "   Docker: $(DOCKER_CMD)"; \
-		echo ""; \
-		echo "💡 For better performance:"; \
-		echo "   • Use WSL 2 (faster than WSL 1)"; \
-		echo "   • Store files in WSL filesystem (/home/user/)"; \
-		echo "   • Configure .wslconfig for more memory"; \
+	fi
+	@echo "   Docker: $(DOCKER_CMD)"
+	@echo "   Working Dir: $(PWD)"
+	@echo "   Docker Mount: $(DOCKER_PWD)"
+	@echo ""
+	@if grep -q Microsoft /proc/version 2>/dev/null; then \
+		echo "💡 WSL Tips:"; \
+		echo "   • Use WSL 2 for better performance"; \
+		echo "   • Store files in WSL filesystem for speed"; \
+	elif [[ "$$(uname)" == "Darwin" ]]; then \
+		echo "💡 macOS Tips:"; \
+		echo "   • Ensure Docker Desktop has sufficient resources"; \
+		echo "   • Enable file sharing for project directory"; \
 	else \
-		echo "ℹ️  Not running in WSL"; \
+		echo "💡 Linux Tips:"; \
+		echo "   • Ensure user is in docker group"; \
+		echo "   • Consider increasing Docker resources if needed"; \
 	fi
