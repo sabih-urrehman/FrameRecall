@@ -172,12 +172,11 @@ class FramerecallEncoder:
     def _build_ffmpeg_command(self, frames_dir: Path, output_file: Path, codec: str) -> List[str]:
         
 
-        from .config import codec_parameters
+        from .config import get_codec_parameters
 
-        if codec not in codec_parameters:
-            raise ValueError(f"Unsupported codec: {codec}")
 
-        codec_config = codec_parameters[codec]
+        codec_config = get_codec_parameters(codec.lower())
+
 
         ffmpeg_codec_map = {
             "h265": "libx265", "hevc": "libx265",
@@ -192,6 +191,7 @@ class FramerecallEncoder:
         if not str(output_file).endswith(expected_ext):
             output_file = output_file.with_suffix(expected_ext)
 
+
         cmd = [
             'ffmpeg', '-y',
             '-framerate', str(codec_config["video_fps"]),
@@ -202,37 +202,39 @@ class FramerecallEncoder:
         ]
 
 
-        if ffmpeg_codec == 'libx265':
+        if ffmpeg_codec in ['libx265', 'libx264']:
 
-            cmd.extend(['-vf', 'scale=720:720'])
-            cmd.extend(['-pix_fmt', 'yuv420p'])
+            target_width = codec_config["frame_width"]
+            target_height = codec_config["frame_height"]
+            cmd.extend(['-vf', f'scale={target_width}:{target_height}'])
+            cmd.extend(['-pix_fmt', codec_config["pix_fmt"]])
 
 
-            if "video_profile" in codec_config and codec_config["video_profile"]:
+            if codec_config.get("video_profile"):
                 cmd.extend(['-profile:v', codec_config["video_profile"]])
-
-
-            import os
-            thread_count = min(os.cpu_count() or 4, 16)
-            cmd.extend(['-threads', str(thread_count)])
-
-
-            cmd.extend(['-x265-params', f'keyint=1:threads={thread_count}:crf={codec_config["video_crf"]}:preset={codec_config["video_preset"]}'])
-
-        elif ffmpeg_codec == 'libx264':
-            cmd.extend(['-vf', 'scale=720:720'])
-            cmd.extend(['-pix_fmt', 'yuv420p'])
-
-
-            cmd.extend(['-profile:v', 'high'])
-
-            thread_count = 4
-            cmd.extend(['-threads', str(thread_count)])
-            cmd.extend(['-x264-params', f'keyint=1:threads={thread_count}'])
-
         else:
 
             cmd.extend(['-pix_fmt', codec_config["pix_fmt"]])
+
+
+        import os
+        thread_count = min(os.cpu_count() or 4, 16)
+        cmd.extend(['-threads', str(thread_count)])
+
+
+        if codec_config.get("extra_ffmpeg_args"):
+            extra_args = codec_config["extra_ffmpeg_args"]
+            if isinstance(extra_args, str):
+
+                if ffmpeg_codec == 'libx265':
+                    extra_args = f"{extra_args}:threads={thread_count}"
+                    cmd.extend(['-x265-params', extra_args])
+                elif ffmpeg_codec == 'libx264':
+                    extra_args = f"{extra_args}:threads={thread_count}"
+                    cmd.extend(['-x264-params', extra_args])
+            else:
+
+                cmd.extend(extra_args)
 
 
         cmd.extend(['-movflags', '+faststart', '-avoid_negative_ts', 'make_zero'])
@@ -363,12 +365,8 @@ class FramerecallEncoder:
             frames_dir = self._generate_qr_frames(temp_path, show_progress)
 
             try:
-
-                print(f"🐛 DEBUG: Requested codec: '{codec}'")
-                print(f"🐛 DEBUG: Available in config: {list(self.config['codec_parameters'].keys())}")
-
-
                 from .config import codec_parameters
+                print(f"🐛 DEBUG: Requested codec: '{codec}'")
                 print(f"🐛 DEBUG: Available in full mapping: {list(codec_parameters.keys())}")
 
                 if codec == "mp4v":
