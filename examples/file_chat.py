@@ -12,8 +12,7 @@ import json
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from framerecall import FramerecallEncoder, FramerecallChat
-from framerecall.config import get_default_config, VIDEO_FILE_TYPE
-
+from framerecall.config import get_default_config, get_codec_parameters
 
 def setup_output_dir():
     
@@ -50,8 +49,34 @@ def collect_files_from_directory(directory_path, extensions=None):
 
     return [str(f) for f in files if f.is_file()]
 
+def create_memory_with_fallback(encoder, video_path, index_path):
+    
+    try:
+        build_stats = encoder.build_video(str(video_path), str(index_path))
+        return build_stats
+    except Exception as e:
+        error_str = str(e)
+        if "is_trained" in error_str or "IndexIVFFlat" in error_str or "training" in error_str.lower():
+            print(f"⚠️  FAISS IVF training failed: {e}")
+            print(f"🔄 Auto-switching to Flat index for compatibility...")
 
-def create_memory_from_files(files, output_dir, memory_name):
+
+            original_index_type = encoder.config["index"]["type"]
+            encoder.config["index"]["type"] = "Flat"
+
+            try:
+
+                encoder._setup_index()
+                build_stats = encoder.build_video(str(video_path), str(index_path))
+                print(f"✅ Successfully created memory using Flat index")
+                return build_stats
+            except Exception as fallback_error:
+                print(f"❌ Fallback also failed: {fallback_error}")
+                raise
+        else:
+            raise
+
+def create_memory_from_files(files, output_dir, memory_name, **config_overrides):
     
     print(f"Creating memory from {len(files)} files...")
 
@@ -60,22 +85,44 @@ def create_memory_from_files(files, output_dir, memory_name):
 
 
     config = get_default_config()
-    chunk_size = config["chunking"]["chunk_size"]
-    overlap = config["chunking"]["overlap"]
+    for key, value in config_overrides.items():
+        if key in ['chunk_size', 'overlap']:
+            config["chunking"][key] = value
+        elif key == 'index_type':
+            config["index"]["type"] = value
+        elif key == 'codec':
+            config[key] = value
 
-    print(f"Using chunk_size: {chunk_size}, overlap: {overlap}")
+
+    encoder = FramerecallEncoder(config)
 
 
-    encoder = FramerecallEncoder()
+    actual_codec = encoder.config.get("codec")
+    video_ext = get_codec_parameters(actual_codec).get("video_file_type", "mp4")
+
+
+    try:
+        from tqdm import tqdm
+        use_progress = True
+    except ImportError:
+        print("Note: Install tqdm for progress bars (pip install tqdm)")
+        use_progress = False
 
     processed_count = 0
     skipped_count = 0
 
-    for file_path in files:
+
+    file_iterator = tqdm(files, desc="Processing files") if use_progress else files
+
+    for file_path in file_iterator:
         file_path = Path(file_path)
-        print(f"Processing: {file_path.name}")
+        if not use_progress:
+            print(f"Processing: {file_path.name}")
 
         try:
+            chunk_size = config["chunking"]["chunk_size"]
+            overlap = config["chunking"]["overlap"]
+
             if file_path.suffix.lower() == '.pdf':
                 encoder.add_pdf(str(file_path), chunk_size, overlap)
             elif file_path.suffix.lower() == '.epub':
@@ -119,14 +166,20 @@ def create_memory_from_files(files, output_dir, memory_name):
     print(f"  ⚠️  Skipped: {skipped_count} files")
     print(f"  ⏱️  Processing time: {processing_time:.2f} seconds")
 
+    if processed_count == 0:
+        raise ValueError("No files were successfully processed")
 
-    video_path = output_dir / f"{memory_name}.{VIDEO_FILE_TYPE}"
+
+    video_path = output_dir / f"{memory_name}.{video_ext}"
     index_path = output_dir / f"{memory_name}_index.json"
 
     print(f"\n🎬 Building memory video: {video_path}")
+    print(f"📊 Total chunks to encode: {len(encoder.chunks)}")
+
     encoding_start = time.time()
 
-    build_stats = encoder.build_video(str(video_path), str(index_path))
+
+    build_stats = create_memory_with_fallback(encoder, video_path, index_path)
 
     encoding_time = time.time() - encoding_start
     total_time = time.time() - start_time
@@ -137,7 +190,7 @@ def create_memory_from_files(files, output_dir, memory_name):
     print(f"  📋 Index: {index_path}")
     print(f"  📊 Chunks: {build_stats.get('total_chunks', 'unknown')}")
     print(f"  🎞️  Frames: {build_stats.get('total_frames', 'unknown')}")
-    print(f"  📏 Video size: {build_stats.get('video_size_mb', 0):.1f} MB")
+    print(f"  📏 Video size: {video_path.stat().st_size / (1024 * 1024):.1f} MB")
     print(f"  ⏱️  Encoding time: {encoding_time:.2f} seconds")
     print(f"  ⏱️  Total time: {total_time:.2f} seconds")
 
@@ -154,6 +207,7 @@ def create_memory_from_files(files, output_dir, memory_name):
         'source_files': files,
         'video_path': str(video_path),
         'index_path': str(index_path),
+        'config_used': config,
         'processing_stats': {
             'files_processed': processed_count,
             'files_skipped': skipped_count,
@@ -179,22 +233,52 @@ def load_existing_memory(memory_path):
 
     if memory_path.is_dir():
 
-        video_files = list(memory_path.glob(f"*.{VIDEO_FILE_TYPE}"))
+
+        video_files = []
+        for ext in ['mp4', 'avi', 'mkv']:
+            video_files.extend(memory_path.glob(f"*.{ext}"))
+
         if not video_files:
-            raise ValueError(f"No .{VIDEO_FILE_TYPE} files found in {memory_path}")
+            raise ValueError(f"No video files found in {memory_path}")
 
         video_path = video_files[0]
-        index_path = video_path.with_suffix('_index.json')
 
-    elif memory_path.suffix == f'.{VIDEO_FILE_TYPE}':
+        possible_index_paths = [
+            video_path.with_name(video_path.stem + '_index.json'),
+            video_path.with_suffix('.json'),
+            video_path.with_suffix('_index.json')
+        ]
+
+        index_path = None
+        for possible_path in possible_index_paths:
+            if possible_path.exists():
+                index_path = possible_path
+                break
+
+        if not index_path:
+            raise ValueError(f"No index file found for {video_path}")
+
+    elif memory_path.suffix in ['.mp4', '.avi', '.mkv']:
 
         video_path = memory_path
         index_path = memory_path.with_name(memory_path.stem + '_index.json')
 
     else:
 
-        video_path = memory_path.with_suffix(f'.{VIDEO_FILE_TYPE}')
-        index_path = memory_path.with_suffix('_index.json')
+        base_path = memory_path
+        video_path = None
+
+
+        for ext in ['mp4', 'avi', 'mkv']:
+            candidate = base_path.with_suffix(f'.{ext}')
+            if candidate.exists():
+                video_path = candidate
+                break
+
+        if not video_path:
+            raise ValueError(f"No video file found with base name: {memory_path}")
+
+        index_path = base_path.with_suffix('_index.json')
 
 
     if not video_path.exists():
@@ -202,9 +286,22 @@ def load_existing_memory(memory_path):
     if not index_path.exists():
         raise ValueError(f"Index file not found: {index_path}")
 
+
+    try:
+        with open(index_path, 'r') as f:
+            index_data = json.load(f)
+        chunk_count = len(index_data.get('metadata', []))
+        print(f"✅ Index contains {chunk_count} chunks")
+    except Exception as e:
+        raise ValueError(f"Index file corrupted: {e}")
+
+
+    video_size_mb = video_path.stat().st_size / (1024 * 1024)
+    print(f"✅ Video file: {video_size_mb:.1f} MB")
+
     print(f"Loading existing memory:")
-    print(f"  Video: {video_path}")
-    print(f"  Index: {index_path}")
+    print(f"  📁 Video: {video_path}")
+    print(f"  📋 Index: {index_path}")
 
     return str(video_path), str(index_path)
 
@@ -239,16 +336,18 @@ def start_chat_session(video_path, index_path, provider='google', model=None):
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     export_path = Path("output") / f"conversation_{timestamp}.json"
                     chat.export_conversation(str(export_path))
+                    print(f"💾 Conversation saved to: {export_path}")
                     print("Goodbye!")
                     break
 
                 elif user_input.lower() == 'clear':
                     chat.clear_history()
+                    print("🗑️ Conversation history cleared")
                     continue
 
                 elif user_input.lower() == 'stats':
                     stats = chat.get_stats()
-                    print(f"Session stats: {stats}")
+                    print(f"📊 Session stats: {stats}")
                     continue
 
                 if not user_input:
@@ -271,7 +370,7 @@ def start_chat_session(video_path, index_path, provider='google', model=None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Chat with your documents using Framerecall",
+        description="Chat with your documents using Framerecall with enhanced configuration options",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__
     )
@@ -289,7 +388,7 @@ def main():
     )
     input_group.add_argument(
         '--load-existing',
-        help=f'Load existing memory (provide path to {VIDEO_FILE_TYPE} file or directory)'
+        help='Load existing memory (provide path to video file or directory)'
     )
 
 
@@ -308,6 +407,28 @@ def main():
     parser.add_argument(
         '--memory-name',
         help='Custom name for the memory files (auto-generated if not provided)'
+    )
+
+
+    parser.add_argument(
+        '--chunk-size',
+        type=int,
+        help='Override default chunk size (e.g., 2048, 4096)'
+    )
+    parser.add_argument(
+        '--overlap',
+        type=int,
+        help='Override default chunk overlap (e.g., 16, 32, 64)'
+    )
+    parser.add_argument(
+        '--index-type',
+        choices=['Flat', 'IVF'],
+        help='FAISS index type (Flat for small datasets, IVF for large datasets)'
+    )
+    parser.add_argument(
+        '--codec',
+        choices=['h264', 'h265', 'mp4v'],
+        help='Video codec to use for compression'
     )
 
 
@@ -334,6 +455,7 @@ def main():
                 if not files:
                     print(f"No supported files found in {args.input_dir}")
                     return 1
+                print(f"Found {len(files)} files to process")
                 input_source = args.input_dir
             else:
                 files = args.files
@@ -347,7 +469,29 @@ def main():
             memory_name = args.memory_name or generate_memory_name(input_source)
 
 
-            video_path, index_path = create_memory_from_files(files, output_dir, memory_name)
+            config_overrides = {}
+            if args.chunk_size:
+                config_overrides['chunk_size'] = args.chunk_size
+            if args.overlap:
+                config_overrides['overlap'] = args.overlap
+            if args.index_type:
+                config_overrides['index_type'] = args.index_type
+            if args.codec:
+                config_overrides['codec'] = args.codec
+
+
+            if not config_overrides:
+                default_config = get_default_config()
+                print(f"📋 Using default configuration:")
+                print(f"   Chunk size: {default_config['chunking']['chunk_size']}")
+                print(f"   Overlap: {default_config['chunking']['overlap']}")
+                print(f"   Index type: {default_config['index']['type']}")
+                print(f"   Codec: {default_config.get('codec', 'h265')}")
+
+
+            video_path, index_path = create_memory_from_files(
+                files, output_dir, memory_name, **config_overrides
+            )
 
 
         success = start_chat_session(video_path, index_path, args.provider, args.model)
