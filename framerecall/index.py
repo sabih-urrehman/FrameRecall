@@ -219,14 +219,51 @@ class IndexManager:
 
 
         try:
-            if isinstance(self.index.index, faiss.IndexIVFFlat) and not self.index.index.is_trained:
-                logger.info("Training FAISS index...")
+            underlying_index = self.index.index
 
-                training_data = embeddings[:min(50000, len(embeddings))]
-                self.index.index.train(training_data)
+            if isinstance(underlying_index, faiss.IndexIVFFlat):
+                nlist = underlying_index.nlist
+
+                if not underlying_index.is_trained:
+                    logger.info(f"🧠 FAISS IVF index requires training (nlist={nlist})")
+                    logger.info(f"📊 Available embeddings: {len(embeddings)}")
+
+
+                    if len(embeddings) < nlist:
+                        logger.warning(f"❌ Insufficient training data: need at least {nlist} embeddings, got {len(embeddings)}")
+                        logger.warning(f"💡 IVF indexes require more data. For single documents, consider using 'Flat' index type in config.")
+                        logger.info(f"🔄 Auto-switching to IndexFlatL2 for reliable operation")
+
+                        self.index = faiss.IndexIDMap(faiss.IndexFlatL2(self.dimension))
+                        logger.info(f"✅ Switched to Flat index (exact search, slower but works with any dataset size)")
+                    else:
+                        recommended_min = nlist * 10
+                        if len(embeddings) < recommended_min:
+                            logger.warning(f"⚠️ Suboptimal training data: {len(embeddings)} embeddings (recommended: {recommended_min}+)")
+                            logger.warning(f"💡 Consider using larger dataset or 'Flat' index for better results")
+
+                        logger.info(f"🏋️ Training FAISS IVF index...")
+                        logger.info(f"   - Training vectors: {len(embeddings)}")
+                        logger.info(f"   - Clusters (nlist): {nlist}")
+                        logger.info(f"   - Expected memory: ~{(len(embeddings) * self.dimension * 4) / 1024 / 1024:.1f} MB")
+
+
+                        training_data = embeddings[:min(50000, len(embeddings))]
+                        underlying_index.train(training_data)
+                        logger.info("✅ FAISS IVF training completed successfully")
+                else:
+                    logger.info(f"✅ FAISS IVF index already trained (nlist={nlist})")
+            else:
+                logger.info(f"ℹ️ Using {type(underlying_index).__name__} (no training required)")
+
         except Exception as e:
-            logger.error(f"Index training failed: {e}")
-            raise
+            logger.error(f"❌ Index training failed with error: {e}")
+            logger.error(f"🔍 Error type: {type(e).__name__}")
+            logger.info(f"🔄 Falling back to IndexFlatL2 for reliability")
+            logger.info(f"💡 To avoid this fallback, use 'Flat' index type in config for small datasets")
+
+            self.index = faiss.IndexIDMap(faiss.IndexFlatL2(self.dimension))
+            logger.info(f"✅ Fallback complete - using exact search")
 
 
         try:
