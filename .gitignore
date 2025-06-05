@@ -7,3 +7,18 @@ prompt.framerecall
 USAGE.md
 
 CLAUDE.md
+
+dist/
+framerecall.egg-info/
+*.egg-info/
+*.whl
+*.tar.gz
+
+__pycache__/
+*.pyc
+
+framerecall/__pycache__/
+framerecall.egg-info/
+framerecall.egg-info/*
+dist/framerecall-*/
+

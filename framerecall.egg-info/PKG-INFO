@@ -1,10 +1,10 @@
 Metadata-Version: 2.4
 Name: framerecall
-Version: 0.1.2
+Version: 0.1.3
 Summary: Searchable video memory for llms. slice embed and query millions of frames in seconds.
 Home-page: https://github.com/sabih-urrehman/framerecall
-Author: Framerecall Team
-Author-email: team@framerecall.ai
+Author: Sabih ur rehman
+Author-email: rodrigonotion02@outlook.com
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Developers
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
@@ -24,18 +24,23 @@ Requires-Dist: opencv-python>=4.5.0
 Requires-Dist: opencv-contrib-python>=4.5.0
 Requires-Dist: sentence-transformers>=2.2.0
 Requires-Dist: numpy<2.0.0,>=1.21.0
-Requires-Dist: openai>=1.0.0
 Requires-Dist: tqdm>=4.50.0
 Requires-Dist: faiss-cpu>=1.7.0
 Requires-Dist: Pillow>=9.0.0
 Requires-Dist: python-dotenv>=0.19.0
+Requires-Dist: PyPDF2>=3.0.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
 Requires-Dist: black>=23.0.0; extra == "dev"
 Requires-Dist: flake8>=6.0.0; extra == "dev"
-Provides-Extra: pdf
-Requires-Dist: PyPDF2==3.0.1; extra == "pdf"
+Provides-Extra: llm
+Requires-Dist: openai>=1.0.0; extra == "llm"
+Requires-Dist: google-generativeai>=0.8.0; extra == "llm"
+Requires-Dist: anthropic>=0.52.0; extra == "llm"
+Provides-Extra: epub
+Requires-Dist: beautifulsoup4>=4.0.0; extra == "epub"
+Requires-Dist: ebooklib>=0.18; extra == "epub"
 Provides-Extra: web
 Requires-Dist: fastapi>=0.100.0; extra == "web"
 Requires-Dist: gradio>=4.0.0; extra == "web"
@@ -54,10 +59,36 @@ Dynamic: summary
 
 **The lightweight, game-changing solution for AI memory at scale**
 
+[![PyPI version](https://badge.fury.io/py/framerecall.svg)](https://pypi.org/project/framerecall/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Framerecall revolutionizes AI memory management by encoding text data into videos, enabling **lightning-fast semantic search** across millions of text chunks with **sub-second retrieval times**. Unlike traditional vector databases that consume massive amounts of RAM and storage, Framerecall compresses your knowledge base into compact video files while maintaining instant access to any piece of information.
+
+
+https://github.com/user-attachments/assets/ec550e93-e9c4-459f-a8a1-46e122b5851e
+
+
+
+
+- 🎥 **Video-as-Database**: Store millions of text chunks in a single MP4 file
+- 🔍 **Semantic Search**: Find relevant content using natural language queries
+- 💬 **Built-in Chat**: Conversational interface with context-aware responses
+- 📚 **PDF Support**: Direct import and indexing of PDF documents
+- 🚀 **Fast Retrieval**: Sub-second search across massive datasets
+- 💾 **Efficient Storage**: 10x compression compared to traditional databases
+- 🔌 **Pluggable LLMs**: Works with OpenAI, Anthropic, or local models
+- 🌐 **Offline-First**: No internet required after video generation
+- 🔧 **Simple API**: Get started with just 3 lines of code
+
+
+- **📖 Digital Libraries**: Index thousands of books in a single video file
+- **🎓 Educational Content**: Create searchable video memories of course materials
+- **📰 News Archives**: Compress years of articles into manageable video databases
+- **💼 Corporate Knowledge**: Build company-wide searchable knowledge bases
+- **🔬 Research Papers**: Quick semantic search across scientific literature
+- **📝 Personal Notes**: Transform your notes into a searchable AI assistant
 
 
 - **Video as Database**: Store millions of text chunks in a single MP4 file
@@ -73,27 +104,25 @@ Framerecall revolutionizes AI memory management by encoding text data into video
 
 
 ```bash
-sudo apt-get install libzbar0
-
-brew install zbar
-
-```
-
-```bash
 pip install framerecall
 ```
 
 ```bash
-git clone https://github.com/yourusername/framerecall.git
-cd framerecall
-pip install -e .
+pip install framerecall PyPDF2
 ```
 
 ```bash
-python -m venv .framerecall
-source .framerecall/bin/activate
+mkdir my-framerecall-project
+cd my-framerecall-project
 
-pip install -e ".[dev]"
+python -m venv venv
+
+source venv/bin/activate
+venv\Scripts\activate
+
+pip install framerecall
+
+pip install PyPDF2
 ```
 
 
@@ -149,53 +178,44 @@ interactive = FramerecallInteractive("knowledge_base.mp4", "knowledge_index.json
 interactive.run()
 ```
 
+The `examples/file_chat.py` script provides a comprehensive way to test Framerecall with your own documents:
 
-| Dataset Size | Encoding Time | Search Time | Storage Size | RAM Usage |
-|-------------|--------------|-------------|--------------|-----------|
-| 10K chunks | 45 seconds | 0.05s | 12 MB | 50 MB |
-| 100K chunks | 8 minutes | 0.15s | 120 MB | 200 MB |
-| 1M chunks | 80 minutes | 0.8s | 1.2 GB | 800 MB |
-| 10M chunks | 13 hours | 1.5s | 12 GB | 2 GB |
+```bash
+python examples/file_chat.py
 
-*Benchmarked on Intel i7-9700K, 16GB RAM, SSD storage*
+python examples/file_chat.py
 
+python examples/file_chat.py
 
-```python
-encoder = FramerecallEncoder(
-    chunk_size=512,
-    overlap=50,
-    model_name='all-MiniLM-L6-v2'
-)
+python examples/file_chat.py
 
-encoder.add_chunks(chunks: List[str], metadata: List[dict] = None)
-encoder.add_text(text: str, metadata: dict = None)
-encoder.build_video(video_path: str, index_path: str, fps: int = 30, qr_size: int = 512)
+python examples/file_chat.py
 ```
 
-```python
-retriever = FramerecallRetriever(
-    video_path: str,
-    index_path: str,
-    cache_size: int = 100
-)
+```bash
+mkdir book-chat-demo
+cd book-chat-demo
+python -m venv venv
+source venv/bin/activate
 
-results = retriever.search(query: str, top_k: int = 5)
-context = retriever.get_context(query: str, max_tokens: int = 2000)
-chunks = retriever.get_chunks_by_ids(chunk_ids: List[int])
-```
+pip install framerecall PyPDF2
 
-```python
-chat = FramerecallChat(
-    video_path: str,
-    index_path: str,
-    llm_backend: str = 'openai',
-    model: str = 'gpt-4'
-)
+cat > book_chat.py << 'EOF'
+from framerecall import FramerecallEncoder, chat_with_memory
+import os
 
-chat.start_session(system_prompt: str = None)
-response = chat.chat(message: str, stream: bool = False)
-chat.clear_history()
-chat.export_conversation(path: str)
+book_pdf = "book.pdf"
+
+encoder = FramerecallEncoder()
+encoder.add_pdf(book_pdf)
+encoder.build_video("book_memory.mp4", "book_index.json")
+
+api_key = os.getenv("OPENAI_API_KEY")
+chat_with_memory("book_memory.mp4", "book_index.json", api_key=api_key)
+EOF
+
+export OPENAI_API_KEY="your-api-key"
+python book_chat.py
 ```
 
 
@@ -224,21 +244,27 @@ encoder.add_chunks_parallel(massive_chunk_list)
 
 
 
-**Video Decode Errors**
+**ModuleNotFoundError: No module named 'framerecall'**
 ```bash
-encoder.build_video(..., error_correction='H')
+which python
+source venv/bin/activate
 ```
 
-**Memory Issues with Large Datasets**
-```python
-encoder = FramerecallEncoder(streaming=True)
-for batch in chunk_generator():
-    encoder.add_chunks_batch(batch)
+**ImportError: PyPDF2 is required for PDF support**
+```bash
+pip install PyPDF2
 ```
 
-**Slow Search Performance**
+**LLM API Key Issues**
+```bash
+export GOOGLE_API_KEY="AIzaSyB1-..."
+set GOOGLE_API_KEY=AIzaSyB1-...
+```
+
+**Large PDF Processing**
 ```python
-retriever.warm_cache(common_queries=['AI', 'machine learning', 'data'])
+encoder = FramerecallEncoder()
+encoder.add_pdf("large_book.pdf", chunk_size=400, overlap=50)
 ```
 
 
@@ -253,6 +279,18 @@ black framerecall/
 ```
 
 
+| Feature | Framerecall | Vector DBs | Traditional DBs |
+|---------|--------|------------|-----------------|
+| Storage Efficiency | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
+| Setup Complexity | Simple | Complex | Complex |
+| Semantic Search | ✅ | ✅ | ❌ |
+| Offline Usage | ✅ | ❌ | ✅ |
+| Portability | File-based | Server-based | Server-based |
+| Scalability | Millions | Millions | Billions |
+| Cost | Free | $$$$ | $$$ |
+
+
+
 Check out the [examples/](examples/) directory for:
 - Building memory from Wikipedia dumps
 - Creating a personal knowledge base
@@ -261,19 +299,31 @@ Check out the [examples/](examples/) directory for:
 - Integration with popular LLMs
 
 
-- [Documentation](https://framerecall.readthedocs.io)
+- 📖 [Documentation](https://github.com/sabih-urrehman/framerecall/wiki) - Comprehensive guides
+- 💬 [Discussions](https://github.com/sabih-urrehman/framerecall/discussions) - Ask questions
+- 🐛 [Issue Tracker](https://github.com/sabih-urrehman/framerecall/issues) - Report bugs
+- 🌟 [Show & Tell](https://github.com/sabih-urrehman/framerecall/discussions/categories/show-and-tell) - Share your projects
+
+
+- [GitHub Repository](https://github.com/sabih-urrehman/framerecall)
 - [PyPI Package](https://pypi.org/project/framerecall)
-- [GitHub Repository](https://github.com/yourusername/framerecall)
-- [Discord Community](https://discord.gg/framerecall)
+- [Changelog](https://github.com/sabih-urrehman/framerecall/releases)
+
 
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 
+Created by [Sabih-urrehman](https://github.com/sabih-urrehman) and the Framerecall community.
+
 Built with ❤️ using:
-- [sentence-transformers](https://www.sbert.net/) for embeddings
-- [OpenCV](https://opencv.org/) for video processing
-- [qrcode](https://github.com/lincolnloop/python-qrcode) & [pyzbar](https://github.com/NaturalHistoryMuseum/pyzbar) for data encoding
+- [sentence-transformers](https://www.sbert.net/) - State-of-the-art embeddings for semantic search
+- [OpenCV](https://opencv.org/) - Computer vision and video processing
+- [qrcode](https://github.com/lincolnloop/python-qrcode) - QR code generation
+- [FAISS](https://github.com/facebookresearch/faiss) - Efficient similarity search
+- [PyPDF2](https://github.com/py-pdf/pypdf) - PDF text extraction
+
+Special thanks to all contributors who help make Framerecall better!
 
 
 **Ready to revolutionize your AI memory management? Install Framerecall and start building!** 🚀
