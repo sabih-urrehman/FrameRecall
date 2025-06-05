@@ -3,6 +3,9 @@
 
 import sys
 import os
+
+from framerecall.config import VIDEO_FILE_TYPE
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
@@ -12,7 +15,7 @@ from framerecall import FramerecallEncoder, chat_with_memory
 
 book_pdf = "data/bitcoin.pdf"
 
-video_path = "output/book_memory.mp4"
+video_path = f"output/book_memory.{VIDEO_FILE_TYPE}"
 index_path = "output/book_memory_index.json"
 
 os.makedirs("output/book_chat", exist_ok=True)
