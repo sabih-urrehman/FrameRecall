@@ -6,7 +6,6 @@ import pytest
 import tempfile
 import os
 from pathlib import Path
-
 from framerecall import FrameRecallEncoder
 
 def test_encoder_initialization():
@@ -23,7 +22,7 @@ def test_add_chunks():
 
 def test_add_text():
     encoder = FrameRecallEncoder()
-    text = "Sample sentence. " * 40  # ~700 chars
+    text = "Sample sentence. " * 40  
     encoder.add_text(text, chunk_size=120, overlap=30)
     assert len(encoder.chunks) > 1
     assert all(c.strip() for c in encoder.chunks)
@@ -36,7 +35,6 @@ def test_build_video():
         "Gamma memory block"
     ]
     encoder.add_chunks(segments)
-
     with tempfile.TemporaryDirectory() as tmp:
         video_out = os.path.join(tmp, "clip.mp4")
         index_out = os.path.join(tmp, "clip_index.json")

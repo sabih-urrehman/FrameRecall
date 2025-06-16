@@ -9,7 +9,6 @@ from typing import Optional, Dict, Any
 from .chat import FrameRecallChat
 from .config import VIDEO_FILE_TYPE
 
-
 def chat_with_memory(
     video_file: str,
     index_file: str,
@@ -46,24 +45,19 @@ def chat_with_memory(
         >>> chat_with_memory(f'knowledge.{VIDEO_FILE_TYPE}', 'knowledge_index.json')
     """
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-
     if session_dir is None:
         session_dir = "output"
     os.makedirs(session_dir, exist_ok=True)
-
     if not os.path.exists(video_file):
         print(f"Missing video: {video_file}")
         return
     if not os.path.exists(index_file):
         print(f"Missing index: {index_file}")
         return
-
     api_key = api_key or os.getenv("OPENAI_API_KEY")
-
     print("Setting up FrameRecall dialogue...")
     chat = FrameRecallChat(video_file, index_file, llm_api_key=api_key, llm_model=llm_model, config=config)
     chat.start_session()
-
     if show_stats:
         stats = chat.get_stats()
         print(f"\nLoaded entries: {stats['retriever_stats']['index_stats']['total_chunks']}")
@@ -71,21 +65,16 @@ def chat_with_memory(
             print(f"LLM connected: {stats['llm_model']}")
         else:
             print("LLM not detected — using offline context only.")
-
     print("\nEnter 'help' for instructions or 'exit' to close")
     print("-" * 50)
-
     while True:
         try:
             user_input = input("\nYou: ").strip()
             if not user_input:
                 continue
-
             command = user_input.lower()
-
             if command in ['exit', 'quit', 'q']:
                 break
-
             elif command == 'help':
                 print("\nAvailable:")
                 print("  search <query> - Raw result display")
@@ -95,26 +84,22 @@ def chat_with_memory(
                 print("  help           - This menu")
                 print("  exit/quit      - Close interface")
                 continue
-
             elif command == 'stats':
                 stats = chat.get_stats()
                 print(f"\nExchanges: {stats['message_count']}")
                 print(f"Cache entries: {stats['retriever_stats']['cache_size']}")
                 print(f"Frame count: {stats['retriever_stats']['total_frames']}")
                 continue
-
             elif command == 'export':
                 path = os.path.join(session_dir, f"framerecall_session_{chat.session_id}.json")
                 chat.export_session(path)
                 print(f"Transcript saved: {path}")
                 continue
-
             elif command == 'clear':
                 chat.reset_session()
                 chat.start_session()
                 print("Dialogue reset.")
                 continue
-
             elif command.startswith('search '):
                 query = user_input[7:]
                 print(f"\nLooking up: '{query}'")
@@ -125,29 +110,23 @@ def chat_with_memory(
                 for i, r in enumerate(hits[:3]):
                     print(f"{i+1}. [Score: {r['score']:.3f}] {r['text'][:100]}...")
                 continue
-
-            # Default: process as LLM query
             print("\nAssistant: ", end="", flush=True)
             begin = time.time()
             answer = chat.chat(user_input)
             runtime = time.time() - begin
             print(answer)
             print(f"\n[{runtime:.1f}s]", end="")
-
         except KeyboardInterrupt:
             print("\n\nStopped by user.")
             break
         except Exception as err:
             print(f"\nIssue: {err}")
             continue
-
     if export_on_exit and chat.get_history():
         path = os.path.join(session_dir, f"framerecall_session_{chat.session_id}.json")
         chat.export_session(path)
         print(f"\nSaved log to: {path}")
-
     print("Session closed.")
-
 
 def quick_chat(video_file: str, index_file: str, query: str, api_key: Optional[str] = None) -> str:
     """

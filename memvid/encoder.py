@@ -9,13 +9,11 @@ from typing import List, Optional, Dict, Any
 from tqdm import tqdm
 import cv2
 import numpy as np
-
 from .utils import encode_to_qr, qr_to_frame, create_video_writer, chunk_text
 from .index import IndexManager
 from .config import get_default_config, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP
 
 logger = logging.getLogger(__name__)
-
 
 class FrameRecallEncoder:
     """Encodes textual input into a video archive with QR encoding and index search"""
@@ -38,22 +36,17 @@ class FrameRecallEncoder:
             import PyPDF2
         except ImportError:
             raise ImportError("PyPDF2 is required for PDF support. Install with: pip install PyPDF2")
-        
         if not Path(pdf_path).exists():
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-        
         text = ""
         with open(pdf_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
             num_pages = len(pdf_reader.pages)
-            
             logger.info(f"Extracting text from {num_pages} pages of {Path(pdf_path).name}")
-            
             for page_num in range(num_pages):
                 page = pdf_reader.pages[page_num]
                 page_text = page.extract_text()
                 text += page_text + "\n\n"
-        
         if text.strip():
             self.add_text(text, chunk_size, overlap)
             logger.info(f"Added PDF content: {len(text)} characters from {Path(pdf_path).name}")
@@ -67,46 +60,29 @@ class FrameRecallEncoder:
             from bs4 import BeautifulSoup
         except ImportError:
             raise ImportError("ebooklib and beautifulsoup4 are required for EPUB support. Install with: pip install ebooklib beautifulsoup4")
-
         if not Path(epub_path).exists():
             raise FileNotFoundError(f"EPUB file not found: {epub_path}")
-
         try:
             book = epub.read_epub(epub_path)
             text_content = []
-
             logger.info(f"Extracting text from EPUB: {Path(epub_path).name}")
-
-            # Extract text from all document items
             for item in book.get_items():
                 if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                    # Parse HTML content
                     soup = BeautifulSoup(item.get_content(), 'html.parser')
-
-                    # Remove script and style elements
                     for script in soup(["script", "style"]):
                         script.decompose()
-
-                    # Get text and clean it up
                     text = soup.get_text()
-
-                    # Clean up whitespace
                     lines = (line.strip() for line in text.splitlines())
                     chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                     text = ' '.join(chunk for chunk in chunks if chunk)
-
                     if text.strip():
                         text_content.append(text)
-
-            # Combine all text
             full_text = "\n\n".join(text_content)
-
             if full_text.strip():
                 self.add_text(full_text, chunk_size, overlap)
                 logger.info(f"Added EPUB content: {len(full_text)} characters from {Path(epub_path).name}")
             else:
                 logger.warning(f"No text extracted from EPUB: {epub_path}")
-
         except Exception as e:
             logger.error(f"Error processing EPUB {epub_path}: {e}")
             raise
@@ -115,23 +91,17 @@ class FrameRecallEncoder:
                     show_progress: bool = True) -> Dict[str, Any]:
         if not self.chunks:
             raise ValueError("No content to encode. Use add_chunks() beforehand.")
-
         output_path = Path(output_file)
         index_path = Path(index_file)
-
         output_path.parent.mkdir(parents=True, exist_ok=True)
         index_path.parent.mkdir(parents=True, exist_ok=True)
-
         logger.info(f"Encoding video with {len(self.chunks)} segments")
-
         video_cfg = self.config["video"]
         writer = create_video_writer(str(output_path), video_cfg)
-
         frame_ids = []
         iterator = enumerate(self.chunks)
         if show_progress:
             iterator = tqdm(iterator, total=len(self.chunks), desc="Encoding segments")
-
         try:
             for frame_id, content in iterator:
                 payload = {
@@ -143,11 +113,9 @@ class FrameRecallEncoder:
                 frame = qr_to_frame(qr_img, (video_cfg["frame_width"], video_cfg["frame_height"]))
                 writer.write(frame)
                 frame_ids.append(frame_id)
-
             logger.info("Generating retrieval index...")
             self.index_manager.add_chunks(self.chunks, frame_ids, show_progress)
             self.index_manager.save(str(index_path.with_suffix('')))
-
             stats = {
                 "total_chunks": len(self.chunks),
                 "total_frames": len(frame_ids),
@@ -159,12 +127,9 @@ class FrameRecallEncoder:
                 "duration_seconds": len(frame_ids) / video_cfg["fps"],
                 "index_stats": self.index_manager.get_stats()
             }
-
             logger.info(f"Video complete: {output_path}")
             logger.info(f"Length: {stats['duration_seconds']:.1f}s | Size: {stats['video_size_mb']:.1f}MB")
-
             return stats
-
         finally:
             writer.release()
 

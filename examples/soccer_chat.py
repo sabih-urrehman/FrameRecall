@@ -7,7 +7,6 @@ import sys
 import os
 from memvid.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from framerecall import FrameRecallEncoder, chat_with_memory
 
 # Knowledge input: international and club football history

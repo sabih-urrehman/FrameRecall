@@ -15,7 +15,6 @@ import logging
 from tqdm import tqdm
 import base64
 import gzip
-
 from .config import get_default_config
 
 logger = logging.getLogger(__name__)
@@ -26,11 +25,9 @@ def encode_to_qr(data: str, config: Optional[Dict[str, Any]] = None) -> Image.Im
     else:
         default_cfg = get_default_config()["qr"]
         config = {**default_cfg, **config.get("qr", config)}
-
     if len(data) > 100:
         compressed = gzip.compress(data.encode())
         data = "GZ:" + base64.b64encode(compressed).decode()
-
     qr = qrcode.QRCode(
         version=config["version"],
         error_correction=getattr(qrcode.constants, f"ERROR_CORRECT_{config['error_correction']}"),
@@ -44,7 +41,6 @@ def encode_to_qr(data: str, config: Optional[Dict[str, Any]] = None) -> Image.Im
 def decode_qr(image: np.ndarray) -> Optional[str]:
     try:
         detector = cv2.QRCodeDetector()
-        # Detect and decode
         data, bbox, _ = detector.detectAndDecode(image)
         if data:
             if data.startswith("GZ:"):

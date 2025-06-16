@@ -9,7 +9,6 @@ from memvid.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
-
 from framerecall import FrameRecallEncoder, chat_with_memory
 
 # Path to source PDF — FrameRecall manages parsing automatically
