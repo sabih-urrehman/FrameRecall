@@ -5,13 +5,13 @@ import numpy as np
 from PIL import Image
 import tempfile
 import os
-from memvid.utils import (
+from framerecall.utils import (
     encode_to_qr, decode_qr, chunk_text, qr_to_frame,
     save_index, load_index
 )
 
 def test_qr_basic_encode_decode():
-    sample_text = "Hello, Memvid!"
+    sample_text = "Hello, FrameRecall!"
     qr_img = encode_to_qr(sample_text)
     assert isinstance(qr_img, Image.Image)
     frame = qr_to_frame(qr_img, (512, 512))

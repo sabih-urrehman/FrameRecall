@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Example: Interactive conversation using MemvidChat (Fixed)
+Example: Interactive conversation using FrameRecallChat (Fixed)
 """
 
 import sys
 import os
-from memvid.config import VIDEO_FILE_TYPE
+from framerecall.config import VIDEO_FILE_TYPE
 # Set environment variable before importing transformers
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from memvid import MemvidChat
+from framerecall import FrameRecallChat
 import time
 
 def print_search_results(results):
@@ -22,7 +22,7 @@ def print_search_results(results):
         print(f"Frame: {result['frame']}")
 
 def main():
-    print("Memvid Example: Interactive Chat with Memory")
+    print("FrameRecall Example: Interactive Chat with Memory")
     print("=" * 50)
     # Check if memory files exist
     video_file = "output/memory.{VIDEO_FILE_TYPE}"
@@ -38,7 +38,7 @@ def main():
     if not api_key:
         print("\nNote: No OpenAI API key found. Chat will work in context-only mode.")
         print("Set OPENAI_API_KEY environment variable to enable full chat capabilities.")
-    chat = MemvidChat(video_file, index_file, llm_api_key=api_key)
+    chat = FrameRecallChat(video_file, index_file, llm_api_key=api_key)
     chat.start_session()
     # Get stats
     stats = chat.get_stats()

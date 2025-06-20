@@ -5,7 +5,7 @@ Demo: Updated interactive session using FrameRecallChat
 
 import sys
 import os
-from memvid.config import VIDEO_FILE_TYPE
+from framerecall.config import VIDEO_FILE_TYPE
 # Disable tokenizer threading warning for better CLI experience
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -26,10 +26,12 @@ import time
 from pathlib import Path
 import json
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 try:
     from framerecall.encoder import FrameRecallEncoder
+    from framerecall.config import DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP
 except ImportError:
     print("❌ FrameRecallEncoder not available. Execute from the repository base.")
     sys.exit(1)
@@ -63,7 +65,7 @@ def find_files_in_directory(dir_path, file_types=None, max_files=None):
     print(f"📁 Total files to process: {len(files)}")
     return files
 
-def load_multiple_files(file_paths, chunk_size=512, show_progress=True):
+def load_multiple_files(file_paths, chunk_size=DEFAULT_CHUNK_SIZE, overlap=DEFAULT_OVERLAP, show_progress=True):
     encoder = FrameRecallEncoder()
     file_stats = []
     if show_progress:
@@ -77,9 +79,9 @@ def load_multiple_files(file_paths, chunk_size=512, show_progress=True):
         try:
             file_encoder = FrameRecallEncoder()
             if file_path.suffix.lower() == '.pdf':
-                file_encoder.add_pdf(str(file_path), chunk_size=chunk_size)
+                file_encoder.add_pdf(str(file_path), chunk_size=chunk_size, overlap=overlap)
             elif file_path.suffix.lower() == '.epub':
-                file_encoder.add_epub(str(file_path), chunk_size=chunk_size)
+                file_encoder.add_epub(str(file_path), chunk_size=chunk_size, overlap=overlap)
             elif file_path.suffix.lower() == '.json':
                 with open(file_path, 'r', encoding='utf-8') as f:
                     chunks = json.load(f)
@@ -88,7 +90,7 @@ def load_multiple_files(file_paths, chunk_size=512, show_progress=True):
             else:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     text = f.read()
-                file_encoder.add_text(text, chunk_size=chunk_size)
+                file_encoder.add_text(text, chunk_size=chunk_size, overlap=overlap)
             if file_encoder.chunks:
                 encoder.chunks.extend(file_encoder.chunks)
                 file_stats.append({
@@ -124,7 +126,7 @@ def load_multiple_files(file_paths, chunk_size=512, show_progress=True):
     print(f"💾 Total file size: {format_size(total_size)}")
     return encoder, summary
 
-def load_user_data(input_path, chunk_size=512, file_types=None, max_files=None):
+def load_user_data(input_path, chunk_size=DEFAULT_CHUNK_SIZE, overlap=DEFAULT_OVERLAP, file_types=None, max_files=None):
     input_path = Path(input_path)
     if not input_path.exists():
         print(f"❌ Path not found: {input_path}")
@@ -135,7 +137,7 @@ def load_user_data(input_path, chunk_size=512, file_types=None, max_files=None):
         if not files:
             print(f"❌ No supported files found in {input_path}")
             return None, None
-        encoder, summary = load_multiple_files(files, chunk_size, show_progress=True)
+        encoder, summary = load_multiple_files(files, chunk_size, overlap, show_progress=True)
         if not encoder.chunks:
             print("❌ No content extracted from any files")
             return None, None
@@ -157,10 +159,10 @@ def load_user_data(input_path, chunk_size=512, file_types=None, max_files=None):
         try:
             if input_path.suffix.lower() == '.pdf':
                 print("📄 Detected PDF file")
-                encoder.add_pdf(str(input_path), chunk_size=chunk_size)
+                encoder.add_pdf(str(input_path), chunk_size=chunk_size, overlap=overlap)
             elif input_path.suffix.lower() == '.epub':
                 print("📚 Detected EPUB file")
-                encoder.add_epub(str(input_path), chunk_size=chunk_size)
+                encoder.add_epub(str(input_path), chunk_size=chunk_size, overlap=overlap)
             elif input_path.suffix.lower() == '.json':
                 print("📋 Detected JSON chunks file")
                 with open(input_path, 'r', encoding='utf-8') as f:
@@ -175,7 +177,7 @@ def load_user_data(input_path, chunk_size=512, file_types=None, max_files=None):
                 print("📝 Treating as text file")
                 with open(input_path, 'r', encoding='utf-8') as f:
                     text = f.read()
-                encoder.add_text(text, chunk_size=chunk_size)
+                encoder.add_text(text, chunk_size=chunk_size, overlap=overlap)
         except Exception as e:
             print(f"❌ Error loading file: {e}")
             return None, None
@@ -346,8 +348,10 @@ This tool shows you real compression differences on YOUR files.
         """
     )
     parser.add_argument('input_path', help='Path to your file or directory (PDF, EPUB, TXT, JSON, or folder)')
-    parser.add_argument('--chunk-size', type=int, default=512,
-                        help='Chunk size for text splitting (default: 512)')
+    parser.add_argument('--chunk-size', type=int, default=DEFAULT_CHUNK_SIZE,
+                        help='Chunk size for text splitting')
+    parser.add_argument('--overlap', type=int, default=DEFAULT_OVERLAP,
+                        help='Overlap for text splitting')
     parser.add_argument('--output-dir', default='output',
                         help='Output directory for encoded videos (default: output)')
     parser.add_argument('--file-types', nargs='+', default=['pdf', 'epub', 'txt', 'md', 'json'],
@@ -357,10 +361,10 @@ This tool shows you real compression differences on YOUR files.
     parser.add_argument('--chunks', action='store_true',
                         help='Treat input file as pre-made JSON chunks')
     args = parser.parse_args()
-    print("🎥 Memvid Codec Comparison Tool")
+    print("🎥 FrameRecall Codec Comparison Tool")
     print("Compare H.265 vs MP4V compression on YOUR data")
     print()
-    encoder, data_info = load_user_data(args.input_path, args.chunk_size, args.file_types, args.max_files)
+    encoder, data_info = load_user_data(args.input_path, args.chunk_size, args.overlap, args.file_types, args.max_files)
     if not encoder:
         sys.exit(1)
     docker_status = encoder.get_docker_status()

@@ -315,7 +315,7 @@ Explore the [examples/](examples/) folder to discover:
 - [Package on PyPI](https://pypi.org/project/framerecall)
 - [Codebase](https://github.com/sabih-urrehman/framerecall)
 - [Community Forum](https://x.com/framerecall)
-- [Changelog](https://github.com/olow304/memvid/releases)
+- [Changelog](https://github.com/sabih-urrehman/framerecall/releases)
 
 ## 📄 Usage Rights
 
