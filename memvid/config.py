@@ -5,10 +5,10 @@ Default parameters and constants for FrameRecall
 from typing import Dict, Any
 
 # QR pattern configuration
-QR_VERSION = 30
-QR_ERROR_CORRECTION = 'L'
-QR_BOX_SIZE = 4
-QR_BORDER = 2
+QR_VERSION = 35 # 1-40, higher = more data capacity https://www.qrcode.com/en/about/version.html
+QR_ERROR_CORRECTION = 'M'  # L, M, Q, H
+QR_BOX_SIZE = 5    # QR_BOX_SIZE * QR_VERSION dimensions (1 = 21 x 21, 20 = 97 x 97, 40 = 177×177) + QR_BORDER must be < frame height/width
+QR_BORDER = 3
 QR_FILL_COLOR = "black"
 QR_BACK_COLOR = "white"
 
@@ -25,8 +25,8 @@ VIDEO_PRESET = 'slow'
 VIDEO_PROFILE = 'baseline' 
 
 # Chunking settings - SIMPLIFIED
-DEFAULT_CHUNK_SIZE = 4096
-DEFAULT_OVERLAP = 16
+DEFAULT_CHUNK_SIZE = 1024
+DEFAULT_OVERLAP = 32
 
 # Retrieval system defaults
 DEFAULT_TOP_K = 5
@@ -39,14 +39,14 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 EMBEDDING_DIMENSION = 384
 
 # Vector index tuning
-INDEX_TYPE = "IVF"
+INDEX_TYPE = "Flat"  # Can be "IVF" for larger datasets, otherwise use Flat
 NLIST = 100
 
 # LLM configuration
 DEFAULT_LLM_PROVIDER = "google"  # google, openai, anthropic
-LLM_MODELS = {
+DEFAULT_LLM_MODELS = {
     "google": "gemini-2.0-flash-exp",
-    "openai": "gpt-4",
+    "openai": "gpt-4o",
     "anthropic": "claude-3-5-sonnet-20241022"
 }
 
@@ -102,7 +102,7 @@ def get_default_config() -> Dict[str, Any]:
             "nlist": NLIST,
         },
         "llm": {
-            "model": LLM_MODELS[DEFAULT_LLM_PROVIDER],
+            "model": DEFAULT_LLM_MODELS[DEFAULT_LLM_PROVIDER],
             "max_tokens": MAX_TOKENS,
             "temperature": TEMPERATURE,
             "context_window": CONTEXT_WINDOW,
