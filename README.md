@@ -63,7 +63,7 @@ pip install PyPDF2
 from framerecall import FrameRecallEncoder, FrameRecallChat
 
 # Construct memory sequence using textual inputs
-segments = ["Crucial insight 1", "Crucial insight 2", "Contextual knowledge snippet", ...]
+segments = ["Crucial insight 1", "Crucial insight 2", "Contextual knowledge snippet"]
 builder = FrameRecallEncoder()
 builder.add_chunks(segments)
 builder.build_video("archive.mp4", "archive_index.json")
@@ -123,6 +123,26 @@ interactive = FrameRecallInteractive("knowledge_base.mp4", "knowledge_index.json
 interactive.run()  # Web panel opens at http://localhost:7860
 ```
 
+### Testing with file_chat.py
+The `examples/file_chat.py` script provides a comprehensive way to test Memvid with your own documents:
+
+```bash
+# Process a directory of documents
+python examples/file_chat.py --input-dir /path/to/documents --provider google
+
+# Process specific files
+python examples/file_chat.py --files doc1.txt doc2.pdf --provider openai
+
+# Use H.265 compression (requires Docker)
+python examples/file_chat.py --input-dir docs/ --codec h265 --provider google
+
+# Custom chunking for large documents
+python examples/file_chat.py --files large.pdf --chunk-size 2048 --overlap 32 --provider google
+
+# Load existing memory
+python examples/file_chat.py --load-existing output/my_memory --provider google
+```
+
 ### Full Demo: Converse with a PDF Book
 ```bash
 # 1. Prepare project directory and virtual environment
@@ -155,52 +175,6 @@ EOF
 # 4. Launch the assistant
 export OPENAI_API_KEY="your-api-key"  # Optional
 python book_chat.py
-```
-
-## 🔧 API Summary
-
-### FrameRecallEncoder
-```python
-encoder = FrameRecallEncoder(
-    chunk_size=512,       # Letters per segment
-    overlap=50,           # Shared characters between segments
-    model_name='all-MiniLM-L6-v2'  # Embedding architecture
-)
-
-# Available Functions
-encoder.add_chunks(chunks: List[str], metadata: List[dict] = None)
-encoder.add_text(text: str, metadata: dict = None)
-encoder.build_video(video_path: str, index_path: str, fps: int = 30, qr_size: int = 512)
-```
-
-### FrameRecallRetriever
-```python
-retriever = FrameRecallRetriever(
-    video_path: str,
-    index_path: str,
-    cache_size: int = 100  # Frames retained in memory
-)
-
-# Search Features
-results = retriever.search(query: str, top_k: int = 5)
-context = retriever.get_context(query: str, max_tokens: int = 2000)
-chunks = retriever.get_chunks_by_ids(chunk_ids: List[int])
-```
-
-### FrameRecallChat
-```python
-chat = FrameRecallChat(
-    video_path: str,
-    index_path: str,
-    llm_backend: str = 'openai',  # Options: 'openai', 'anthropic', 'local'
-    model: str = 'gpt-4'
-)
-
-# Dialogue Capabilities
-chat.start_session(system_prompt: str = None)
-response = chat.chat(message: str, stream: bool = False)
-chat.clear_history()
-chat.export_conversation(path: str)
 ```
 
 ## 🛠️ Extended Setup

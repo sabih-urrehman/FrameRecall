@@ -3,7 +3,7 @@ import os
 import json
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, Iterator
-from memvid.config import DEFAULT_LLM_MODELS
+from framerecall.config import DEFAULT_LLM_MODELS
 
 try:
     from openai import OpenAI
