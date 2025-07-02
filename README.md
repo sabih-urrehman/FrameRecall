@@ -214,19 +214,6 @@ custom_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
 encoder = FrameRecallEncoder(embedding_model=custom_model)
 ```
 
-### Clip Compression
-```python
-# Configure for minimal file size
-encoder.build_video(
-    "compressed.mp4",
-    "index.json",
-    fps=60,            # Increased frame frequency
-    frame_size=256,    # Lower resolution
-    video_codec='h265',  # High-efficiency codec
-    crf=28             # Compression ratio (smaller = clearer)
-)
-```
-
 ### Parallelized Workloads
 ```python
 # Accelerate processing with concurrency

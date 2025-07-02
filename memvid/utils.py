@@ -15,7 +15,7 @@ import logging
 from tqdm import tqdm
 import base64
 import gzip
-from .config import get_default_config
+from .config import get_default_config, VIDEO_CODEC
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def decode_qr(image: np.ndarray) -> Optional[str]:
         logger.warning(f"QR decode error: {e}")
     return None
 
-def create_video_writer(output_path: str, config: Optional[Dict[str, Any]] = None) -> cv2.VideoWriter:
+def create_video_writer(output_path: str, config: str = VIDEO_CODEC) -> cv2.VideoWriter:
     cfg = config or get_default_config()["video"]
     fourcc = cv2.VideoWriter_fourcc(*cfg["codec"])
     return cv2.VideoWriter(

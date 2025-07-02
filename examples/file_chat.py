@@ -32,7 +32,7 @@ from datetime import datetime
 import json
 sys.path.insert(0, str(Path(__file__).parent.parent))  # Go up TWO levels from examples/
 from framerecall import FrameRecallEncoder, FrameRecallChat
-from framerecall.config import get_default_config, get_codec_parameters
+from framerecall.config import get_default_config
 
 def setup_output_dir():
     """Create output directory if it doesn't exist"""
@@ -104,9 +104,6 @@ def create_framerecall_memory(files, output_dir, memory_name, **config_overrides
             config[key] = value
     # Initialize encoder with config first (this ensures config consistency)
     encoder = FrameRecallEncoder(config)
-    # Get the actual codec and video extension from the encoder's config
-    actual_codec = encoder.config.get("codec")  # Use encoder's resolved codec
-    video_ext = get_codec_parameters(actual_codec).get("video_file_type", "mp4")
     # Import tqdm for progress bars
     try:
         from tqdm import tqdm
@@ -166,7 +163,7 @@ def create_framerecall_memory(files, output_dir, memory_name, **config_overrides
     if processed_count == 0:
         raise ValueError("No files were successfully processed")
     # Build the video (video_ext already determined from encoder config)
-    video_path = output_dir / f"{memory_name}.{video_ext}"
+    video_path = output_dir / f"{memory_name}.mp4"
     index_path = output_dir / f"{memory_name}_index.json"
     print(f"\n🎬 Building memory video: {video_path}")
     print(f"📊 Total chunks to encode: {len(encoder.chunks)}")
