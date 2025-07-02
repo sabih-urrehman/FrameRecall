@@ -17,6 +17,16 @@ VIDEO_FPS = 30
 VIDEO_CODEC = 'mp4v'
 FRAME_WIDTH = 512
 FRAME_HEIGHT = 512
+VIDEO_FILE_TYPE = ".mp4"
+
+# compression settings for QR codes
+VIDEO_CRF = 28  
+VIDEO_PRESET = 'slow'  
+VIDEO_PROFILE = 'baseline' 
+
+# Chunking settings - SIMPLIFIED
+DEFAULT_CHUNK_SIZE = 512
+DEFAULT_OVERLAP = 32
 
 # Retrieval system defaults
 DEFAULT_TOP_K = 5
@@ -33,10 +43,16 @@ INDEX_TYPE = "Flat"
 NLIST = 100
 
 # LLM configuration
-DEFAULT_LLM_MODEL = "gpt-3.5-turbo"
-MAX_TOKENS = 1000
-TEMPERATURE = 0.7
-CONTEXT_WINDOW = 4096
+DEFAULT_LLM_PROVIDER = "google"  # google, openai, anthropic
+LLM_MODELS = {
+    "google": "gemini-2.0-flash-exp",
+    "openai": "gpt-4",
+    "anthropic": "claude-3-5-sonnet-20241022"
+}
+
+MAX_TOKENS = 8192
+TEMPERATURE = 0.1
+CONTEXT_WINDOW = 32000
 
 # Chat system behavior
 MAX_HISTORY_LENGTH = 10
@@ -62,6 +78,14 @@ def get_default_config() -> Dict[str, Any]:
             "codec": VIDEO_CODEC,
             "frame_width": FRAME_WIDTH,
             "frame_height": FRAME_HEIGHT,
+            "crf": VIDEO_CRF,
+            "preset": VIDEO_PRESET,
+            "profile": VIDEO_PROFILE,
+            "file_type": VIDEO_FILE_TYPE,
+        },
+        "chunking": {
+            "chunk_size": DEFAULT_CHUNK_SIZE,
+            "overlap": DEFAULT_OVERLAP,
         },
         "retrieval": {
             "top_k": DEFAULT_TOP_K,
@@ -78,7 +102,7 @@ def get_default_config() -> Dict[str, Any]:
             "nlist": NLIST,
         },
         "llm": {
-            "model": DEFAULT_LLM_MODEL,
+            "model": LLM_MODELS[DEFAULT_LLM_PROVIDER],
             "max_tokens": MAX_TOKENS,
             "temperature": TEMPERATURE,
             "context_window": CONTEXT_WINDOW,
