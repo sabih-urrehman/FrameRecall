@@ -12,7 +12,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/framerecall-org/framerecall",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests", "tests.*", "examples", "examples.*"]),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
@@ -33,11 +33,11 @@ setup(
         "opencv-contrib-python>=4.5.0",  # Includes QR decoder
         "sentence-transformers>=2.2.0",
         "numpy>=1.21.0,<2.0.0",
-        "openai>=1.0.0",
         "tqdm>=4.50.0",
         "faiss-cpu>=1.7.0",
         "Pillow>=9.0.0",
         "python-dotenv>=0.19.0",
+        "PyPDF2>=3.0.0",
     ],
     extras_require={
         "dev": [
@@ -46,8 +46,14 @@ setup(
             "black>=23.0.0",
             "flake8>=6.0.0",
         ],
-        "pdf": [
-            "PyPDF2==3.0.1",
+        "llm": [
+            "openai>=1.0.0",
+            "google-generativeai>=0.8.0",
+            "anthropic>=0.52.0",
+        ],
+        "epub": [
+            "beautifulsoup4>=4.0.0",
+            "ebooklib>=0.18",
         ],
         "web": [
             "fastapi>=0.100.0",
