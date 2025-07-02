@@ -7,6 +7,7 @@ import os
 import time
 from typing import Optional, Dict, Any
 from .chat import FrameRecallChat
+from .config import VIDEO_FILE_TYPE
 
 
 def chat_with_memory(
@@ -42,7 +43,7 @@ def chat_with_memory(
 
     Example:
         >>> from framerecall import chat_with_memory
-        >>> chat_with_memory("library.mp4", "library_index.json")
+        >>> chat_with_memory(f'knowledge.{VIDEO_FILE_TYPE}', 'knowledge_index.json')
     """
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
@@ -163,7 +164,7 @@ def quick_chat(video_file: str, index_file: str, query: str, api_key: Optional[s
     
     Usage:
         >>> from framerecall import quick_chat
-        >>> output = quick_chat("library.mp4", "library_index.json", "What’s quantum mechanics?")
+        >>> output = quick_chat(f"knowledge.{VIDEO_FILE_TYPE}", "knowledge_index.json", "What is quantum computing?")
         >>> print(output)
     """
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
