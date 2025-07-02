@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from functools import lru_cache
 import cv2
-
 from .utils import (
     extract_frame, decode_qr, batch_extract_and_decode,
     extract_and_decode_cached
@@ -20,22 +19,17 @@ from .config import get_default_config
 
 logger = logging.getLogger(__name__)
 
-
 class FrameRecallRetriever:
     """Enables high-speed semantic search and content recovery from encoded video archive"""
-
     def __init__(self, video_file: str, index_file: str,
                  config: Optional[Dict[str, Any]] = None):
         self.video_file = str(Path(video_file).absolute())
         self.index_file = str(Path(index_file).absolute())
         self.config = config or get_default_config()
-
         self.index_manager = IndexManager(self.config)
         self.index_manager.load(str(Path(index_file).with_suffix('')))
-
         self._frame_cache = {}
         self._cache_size = self.config["retrieval"]["cache_size"]
-
         self._verify_video()
         logger.info(f"FrameRecallRetriever ready with {self.index_manager.get_stats()['total_chunks']} segments")
 
@@ -53,7 +47,6 @@ class FrameRecallRetriever:
         results = self.index_manager.search(query, top_k)
         frame_nums = list({res[2]["frame"] for res in results})
         decoded = self._decode_frames_parallel(frame_nums)
-
         chunks = []
         for _, _, meta in results:
             f = meta["frame"]
@@ -62,7 +55,6 @@ class FrameRecallRetriever:
                 chunks.append(data["text"] if "text" in data else meta["text"])
             except Exception:
                 chunks.append(meta["text"])
-
         logger.info(f"Query complete in {time.time() - start:.3f}s: '{query[:50]}...'")
         return chunks
 
@@ -88,25 +80,20 @@ class FrameRecallRetriever:
     def _decode_frames_parallel(self, frame_numbers: List[int]) -> Dict[int, str]:
         results = {}
         to_decode = [f for f in frame_numbers if f not in self._frame_cache]
-
         for f in frame_numbers:
             if f in self._frame_cache:
                 results[f] = self._frame_cache[f]
-
         if not to_decode:
             return results
-
         decoded = batch_extract_and_decode(
             self.video_file,
             to_decode,
             max_workers=self.config["retrieval"]["max_workers"]
         )
-
         for f, d in decoded.items():
             results[f] = d
             if len(self._frame_cache) < self._cache_size:
                 self._frame_cache[f] = d
-
         return results
 
     def search_with_metadata(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
@@ -114,7 +101,6 @@ class FrameRecallRetriever:
         results = self.index_manager.search(query, top_k)
         frame_nums = list({res[2]["frame"] for res in results})
         decoded = self._decode_frames_parallel(frame_nums)
-
         out = []
         for chunk_id, dist, meta in results:
             f = meta["frame"]
