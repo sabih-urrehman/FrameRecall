@@ -40,7 +40,7 @@ def main():
     print(f"\nOpening archive: {archive_path}")
 
     # Load API key from environment or fallback default (for demo)
-    api_key = os.getenv("OPENAI_API_KEY", "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")
+    api_key = os.getenv("OPENAI_API_KEY", "your-api-key-here")
     if not api_key:
         print("\nNotice: No API key provided. Operating in retrieval-only mode.")
         print("To enable full conversation, set OPENAI_API_KEY in your environment.")

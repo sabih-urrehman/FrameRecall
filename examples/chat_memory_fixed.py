@@ -1,4 +1,4 @@
-#!/usr/bin/env python3Add commentMore actions
+#!/usr/bin/env python3
 """
 Example: Interactive conversation using MemvidChat (Fixed)
 """
@@ -42,7 +42,7 @@ def main():
     print(f"\nLoading memory from: {video_file}")
     
     # You can set OPENAI_API_KEY environment variable or pass it here
-    api_key = os.getenv("OPENAI_API_KEY", "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")
+    api_key = os.getenv("OPENAI_API_KEY", "your-api-key-here")
     if not api_key:
         print("\nNote: No OpenAI API key found. Chat will work in context-only mode.")
         print("Set OPENAI_API_KEY environment variable to enable full chat capabilities.")
