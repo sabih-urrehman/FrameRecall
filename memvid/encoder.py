@@ -6,13 +6,14 @@ import json
 import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
+from isapi.samples.redirector_asynch import CHUNK_SIZE
 from tqdm import tqdm
 import cv2
 import numpy as np
 
 from .utils import encode_to_qr, qr_to_frame, create_video_writer, chunk_text
 from .index import IndexManager
-from .config import get_default_config
+from .config import get_default_config, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,11 @@ class FrameRecallEncoder:
         self.chunks.extend(chunks)
         logger.info(f"Inserted {len(chunks)} segments. Total: {len(self.chunks)}")
 
-    def add_text(self, text: str, chunk_size: int = 500, overlap: int = 50):
+    def add_text(self, text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP):
         segments = chunk_text(text, chunk_size, overlap)
         self.add_chunks(segments)
 
-    def add_pdf(self, pdf_path: str, chunk_size: int = 800, overlap: int = 100):
+    def add_pdf(self, pdf_path: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP):
         try:
             import PyPDF2
         except ImportError:
@@ -59,6 +60,57 @@ class FrameRecallEncoder:
             logger.info(f"Added PDF content: {len(text)} characters from {Path(pdf_path).name}")
         else:
             logger.warning(f"No text extracted from PDF: {pdf_path}")
+
+    def add_epub(self, epub_path: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_OVERLAP):
+        try:
+            import ebooklib
+            from ebooklib import epub
+            from bs4 import BeautifulSoup
+        except ImportError:
+            raise ImportError("ebooklib and beautifulsoup4 are required for EPUB support. Install with: pip install ebooklib beautifulsoup4")
+
+        if not Path(epub_path).exists():
+            raise FileNotFoundError(f"EPUB file not found: {epub_path}")
+
+        try:
+            book = epub.read_epub(epub_path)
+            text_content = []
+
+            logger.info(f"Extracting text from EPUB: {Path(epub_path).name}")
+
+            # Extract text from all document items
+            for item in book.get_items():
+                if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                    # Parse HTML content
+                    soup = BeautifulSoup(item.get_content(), 'html.parser')
+
+                    # Remove script and style elements
+                    for script in soup(["script", "style"]):
+                        script.decompose()
+
+                    # Get text and clean it up
+                    text = soup.get_text()
+
+                    # Clean up whitespace
+                    lines = (line.strip() for line in text.splitlines())
+                    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                    text = ' '.join(chunk for chunk in chunks if chunk)
+
+                    if text.strip():
+                        text_content.append(text)
+
+            # Combine all text
+            full_text = "\n\n".join(text_content)
+
+            if full_text.strip():
+                self.add_text(full_text, chunk_size, overlap)
+                logger.info(f"Added EPUB content: {len(full_text)} characters from {Path(epub_path).name}")
+            else:
+                logger.warning(f"No text extracted from EPUB: {epub_path}")
+
+        except Exception as e:
+            logger.error(f"Error processing EPUB {epub_path}: {e}")
+            raise
 
     def build_video(self, output_file: str, index_file: str,
                     show_progress: bool = True) -> Dict[str, Any]:
@@ -131,8 +183,8 @@ class FrameRecallEncoder:
         }
 
     @classmethod
-    def from_file(cls, file_path: str, chunk_size: int = 500,
-                  overlap: int = 50, config: Optional[Dict[str, Any]] = None) -> 'FrameRecallEncoder':
+    def from_file(cls, file_path: str, chunk_size: int = DEFAULT_CHUNK_SIZE,
+                  overlap: int = DEFAULT_OVERLAP, config: Optional[Dict[str, Any]] = None) -> 'FrameRecallEncoder':
         encoder = cls(config)
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
@@ -140,8 +192,8 @@ class FrameRecallEncoder:
         return encoder
 
     @classmethod
-    def from_documents(cls, documents: List[str], chunk_size: int = 500,
-                       overlap: int = 50, config: Optional[Dict[str, Any]] = None) -> 'FrameRecallEncoder':
+    def from_documents(cls, documents: List[str], chunk_size: int = DEFAULT_CHUNK_SIZE,
+                       overlap: int = DEFAULT_OVERLAP, config: Optional[Dict[str, Any]] = None) -> 'FrameRecallEncoder':
         encoder = cls(config)
         for doc in documents:
             encoder.add_text(doc, chunk_size, overlap)
