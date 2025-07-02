@@ -5,6 +5,7 @@ Demo: Generate clip-based memory archive and search map from textual input
 
 import sys
 import os
+from memvid.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from framerecall import FrameRecallEncoder
@@ -68,7 +69,7 @@ def main():
     target_dir = "output"
     os.makedirs(target_dir, exist_ok=True)
 
-    clip_path = os.path.join(target_dir, "archive.mp4")
+    clip_path = os.path.join(target_dir, "archive.{VIDEO_FILE_TYPE}")
     map_path = os.path.join(target_dir, "search_index.json")
 
     print(f"\nGenerating clip: {clip_path}")

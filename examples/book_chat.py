@@ -5,6 +5,7 @@ Example usage of FrameRecall to interact with book content
 
 import sys
 import os
+from memvid.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()
@@ -15,7 +16,7 @@ from framerecall import FrameRecallEncoder, chat_with_memory
 book_source = "data/bitcoin.pdf"  # Adjust to point to your file
 
 # Output paths for video archive and search index
-video_output = "output/book_memory.mp4"
+video_output = "output/book_memory.{VIDEO_FILE_TYPE}"
 index_output = "output/book_memory_index.json"
 
 # Prepare output directory for saving interaction history

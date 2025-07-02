@@ -5,7 +5,7 @@ Demo: Updated interactive session using FrameRecallChat
 
 import sys
 import os
-
+from memvid.config import VIDEO_FILE_TYPE
 # Disable tokenizer threading warning for better CLI experience
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
@@ -28,7 +28,7 @@ def main():
     print("=" * 50)
 
     # Verify presence of archive files
-    archive_path = "output/archive.mp4"
+    archive_path = "output/archive.{VIDEO_FILE_TYPE}"
     index_path = "output/search_index.json"
 
     if not os.path.exists(archive_path) or not os.path.exists(index_path):
