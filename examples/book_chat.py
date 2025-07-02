@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from framerecall import FrameRecallEncoder, chat_with_memory
 
-# Path to source PDF — FrameRecall manages parsing automatically
+# Path to source PDF, FrameRecall manages parsing automatically
 book_source = "data/bitcoin.pdf"  # Adjust to point to your file
 
 # Output paths for video archive and search index
@@ -21,7 +21,7 @@ index_output = "output/book_memory_index.json"
 # Prepare output directory for saving interaction history
 os.makedirs("output/book_chat", exist_ok=True)
 
-# Convert document into video format — handled internally
+# Convert document into video format, handled internally
 encoder = FrameRecallEncoder()
 encoder.add_pdf(book_source)  # Single-line ingestion
 encoder.build_video(video_output, index_output)

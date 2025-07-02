@@ -64,7 +64,7 @@ def chat_with_memory(
         if stats['llm_available']:
             print(f"LLM connected: {stats['llm_model']}")
         else:
-            print("LLM not detected — using offline context only.")
+            print("LLM not detected, using offline context only.")
     print("\nEnter 'help' for instructions or 'exit' to close")
     print("-" * 50)
     while True:

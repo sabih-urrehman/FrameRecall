@@ -124,22 +124,22 @@ interactive.run()  # Web panel opens at http://localhost:7860
 ```
 
 ### Testing with file_chat.py
-The `examples/file_chat.py` script provides a comprehensive way to test Memvid with your own documents:
+The `examples/file_chat.py` utility enables thorough experimentation with FrameRecall using your personal data files:
 
 ```bash
-# Process a directory of documents
+# Ingest an entire folder of materials
 python examples/file_chat.py --input-dir /path/to/documents --provider google
 
-# Process specific files
+# Load chosen documents
 python examples/file_chat.py --files doc1.txt doc2.pdf --provider openai
 
-# Use H.265 compression (requires Docker)
+# Apply H.265 encoding (Docker required)
 python examples/file_chat.py --input-dir docs/ --codec h265 --provider google
 
-# Custom chunking for large documents
+# Adjust chunking for lengthy inputs
 python examples/file_chat.py --files large.pdf --chunk-size 2048 --overlap 32 --provider google
 
-# Load existing memory
+# Resume from previously saved memory
 python examples/file_chat.py --load-existing output/my_memory --provider google
 ```
 
@@ -246,10 +246,10 @@ black framerecall/
 
 | Capability          | FrameRecall | Embedding Stores | Relational Systems |
 |---------------------|-------------|------------------|--------------------|
-| Data Compression    | 🌟🌟🌟🌟🌟      | 🌟🌟              | 🌟🌟🌟              |
+| Data Compression    | ⭐⭐⭐⭐⭐      | ⭐⭐              | ⭐⭐⭐              |
 | Configuration Time  | Minimal     | Advanced         | Moderate           |
-| Conceptual Matching | ✔️          | ✔️               | ✖️                 |
-| Disconnected Access | ✔️          | ✖️               | ✔️                 |
+| Conceptual Matching | ✅          | ✅               | ❌                 |
+| Disconnected Access | ✅          | ❌               | ✅                 |
 | Mobility            | Standalone File | Hosted        | Hosted             |
 | Throughput Limits   | Multi-million | Multi-million   | Multi-billion      |
 | Financial Impact    | No Charge   | High Fees        | Moderate Expense   |
@@ -280,6 +280,6 @@ Explore the [examples/](examples/) folder to discover:
 
 ## 📄 Usage Rights
 
-Licensed under the MIT agreement — refer to the [LICENSE](LICENSE) document for specifics.
+Licensed under the MIT agreement, refer to the [LICENSE](LICENSE) document for specifics.
 
-**Time to redefine how your LLMs recall information — deploy FrameRecall and ignite knowledge!** 🚀
+**Time to redefine how your LLMs recall information, deploy FrameRecall and ignite knowledge!** 🚀
