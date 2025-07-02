@@ -5,7 +5,7 @@ Football data memory demo using chat_with_memory
 
 import sys
 import os
-from memvid.config import VIDEO_FILE_TYPE
+from framerecall.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from framerecall import FrameRecallEncoder, chat_with_memory
 

@@ -5,7 +5,7 @@ Example usage of FrameRecall to interact with book content
 
 import sys
 import os
-from memvid.config import VIDEO_FILE_TYPE
+from framerecall.config import VIDEO_FILE_TYPE
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dotenv import load_dotenv
 load_dotenv()

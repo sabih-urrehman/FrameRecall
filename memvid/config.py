@@ -5,10 +5,10 @@ Default parameters and constants for FrameRecall
 from typing import Dict, Any
 
 # QR pattern configuration
-QR_VERSION = 1
-QR_ERROR_CORRECTION = 'M'
-QR_BOX_SIZE = 10
-QR_BORDER = 4
+QR_VERSION = 30
+QR_ERROR_CORRECTION = 'L'
+QR_BOX_SIZE = 4
+QR_BORDER = 2
 QR_FILL_COLOR = "black"
 QR_BACK_COLOR = "white"
 
@@ -25,8 +25,8 @@ VIDEO_PRESET = 'slow'
 VIDEO_PROFILE = 'baseline' 
 
 # Chunking settings - SIMPLIFIED
-DEFAULT_CHUNK_SIZE = 512
-DEFAULT_OVERLAP = 32
+DEFAULT_CHUNK_SIZE = 4096
+DEFAULT_OVERLAP = 16
 
 # Retrieval system defaults
 DEFAULT_TOP_K = 5
@@ -39,7 +39,7 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 EMBEDDING_DIMENSION = 384
 
 # Vector index tuning
-INDEX_TYPE = "Flat"
+INDEX_TYPE = "IVF"
 NLIST = 100
 
 # LLM configuration
