@@ -43,32 +43,202 @@ class IndexManager:
         if len(chunks) != len(frame_numbers):
             raise ValueError("Mismatch between chunks and frame numbers")
 
-        logger.info(f"Encoding {len(chunks)} segments into vectors")
-        embeddings = self.embedding_model.encode(
-            chunks,
-            show_progress_bar=show_progress,
-            batch_size=32
-        ).astype('float32')
+        logger.info(f"Processing {len(chunks)} chunks for indexing...")
+
+        # Phase 1: Validate and filter chunks
+        valid_chunks = []
+        valid_frames = []
+        skipped_count = 0
+
+        for chunk, frame_num in zip(chunks, frame_numbers):
+            if self._is_valid_chunk(chunk):
+                valid_chunks.append(chunk)
+                valid_frames.append(frame_num)
+            else:
+                skipped_count += 1
+                logger.warning(f"Skipping invalid chunk at frame {frame_num}: length={len(chunk) if chunk else 0}")
+
+        if skipped_count > 0:
+            logger.warning(f"Skipped {skipped_count} invalid chunks out of {len(chunks)} total")
+
+        if not valid_chunks:
+            logger.error("No valid chunks to process")
+            return []
+
+        logger.info(f"Processing {len(valid_chunks)} valid chunks")
+
+        # Phase 2: Generate embeddings with batch processing and error recovery
+        try:
+            embeddings = self._generate_embeddings(valid_chunks, show_progress)
+        except Exception as e:
+            logger.error(f"Failed to generate embeddings: {e}")
+            return []
+
+        if embeddings is None or len(embeddings) == 0:
+            logger.error("No embeddings generated")
+            return []
+
+        # Phase 3: Add to FAISS index
+        try:
+            chunk_ids = self._add_to_index(embeddings, valid_chunks, valid_frames)
+            logger.info(f"Successfully added {len(chunk_ids)} chunks to index")
+            return chunk_ids
+        except Exception as e:
+            logger.error(f"Failed to add chunks to index: {e}")
+            return []
+
+    def _is_valid_chunk(self, chunk: str) -> bool:
+        """Validate chunk for SentenceTransformer processing - SIMPLIFIED"""
+        if not isinstance(chunk, str):
+            return False
+
+        chunk = chunk.strip()
+
+        # Basic checks only
+        if len(chunk) == 0:
+            return False
+
+        if len(chunk) > 8192:  # SentenceTransformer limit
+            return False
+
+        # Remove the harsh alphanumeric requirement - academic text has lots of punctuation!
+        # Just ensure it's not binary data
+        try:
+            chunk.encode('utf-8')  # Can be encoded as UTF-8
+            return True
+        except UnicodeEncodeError:
+            return False
+
+    def _generate_embeddings(self, chunks: List[str], show_progress: bool) -> np.ndarray:
+        """Generate embeddings with error handling and batch processing"""
+
+        # Try full batch first
+        try:
+            logger.info(f"Generating embeddings for {len(chunks)} chunks (full batch)")
+            embeddings = self.embedding_model.encode(
+                chunks,
+                show_progress_bar=show_progress,
+                batch_size=32,
+                convert_to_numpy=True,
+                normalize_embeddings=True  # Helps with numerical stability
+            )
+            return np.array(embeddings).astype('float32')
+
+        except Exception as e:
+            logger.warning(f"Full batch embedding failed: {e}. Trying batch processing...")
+
+            # Fall back to smaller batches
+            return self._generate_embeddings_batched(chunks, show_progress)
+
+    def _generate_embeddings_batched(self, chunks: List[str], show_progress: bool) -> np.ndarray:
+        """Generate embeddings in smaller batches with individual error handling"""
+
+        all_embeddings = []
+        valid_chunks = []
+        batch_size = 100  # Smaller batches
+
+        total_batches = (len(chunks) + batch_size - 1) // batch_size
+
+        if show_progress:
+            from tqdm import tqdm
+            batch_iter = tqdm(range(0, len(chunks), batch_size),
+                              desc="Processing chunks in batches",
+                              total=total_batches)
+        else:
+            batch_iter = range(0, len(chunks), batch_size)
+
+        for i in batch_iter:
+            batch_chunks = chunks[i:i + batch_size]
+
+            try:
+                # Try batch
+                batch_embeddings = self.embedding_model.encode(
+                    batch_chunks,
+                    show_progress_bar=False,
+                    batch_size=16,  # Even smaller internal batch
+                    convert_to_numpy=True,
+                    normalize_embeddings=True
+                )
+
+                all_embeddings.extend(batch_embeddings)
+                valid_chunks.extend(batch_chunks)
+
+            except Exception as e:
+                logger.warning(f"Batch {i//batch_size} failed: {e}. Processing individually...")
+
+                # Process individually
+                for chunk in batch_chunks:
+                    try:
+                        embedding = self.embedding_model.encode(
+                            [chunk],
+                            show_progress_bar=False,
+                            convert_to_numpy=True,
+                            normalize_embeddings=True
+                        )
+                        all_embeddings.extend(embedding)
+                        valid_chunks.append(chunk)
+
+                    except Exception as chunk_error:
+                        logger.error(f"Failed to embed individual chunk (length={len(chunk)}): {chunk_error}")
+                        # Skip this chunk entirely
+                        continue
+
+        if not all_embeddings:
+            raise RuntimeError("No embeddings could be generated")
+
+        logger.info(f"Generated embeddings for {len(valid_chunks)} out of {len(chunks)} chunks")
+        return np.array(all_embeddings).astype('float32')
+
+    def _add_to_index(self, embeddings: np.ndarray, chunks: List[str], frame_numbers: List[int]) -> List[int]:
+        """Add embeddings to FAISS index with error handling"""
+
+        if len(embeddings) != len(chunks) or len(embeddings) != len(frame_numbers):
+            # This can happen if some chunks were skipped during embedding
+            min_len = min(len(embeddings), len(chunks), len(frame_numbers))
+            embeddings = embeddings[:min_len]
+            chunks = chunks[:min_len]
+            frame_numbers = frame_numbers[:min_len]
+            logger.warning(f"Trimmed to {min_len} items due to length mismatch")
 
         start = len(self.metadata)
         ids = list(range(start, start + len(chunks)))
 
-        if isinstance(self.index.index, faiss.IndexIVFFlat) and not self.index.index.is_trained:
-            logger.info("Training FAISS IVF index...")
-            self.index.index.train(embeddings)
+        try:
+            if isinstance(self.index.index, faiss.IndexIVFFlat) and not self.index.index.is_trained:
+                logger.info("Training FAISS index...")
+                # Use a subset for training if dataset is large
+                training_data = embeddings[:min(50000, len(embeddings))]
+                self.index.index.train(training_data)
+        except Exception as e:
+            logger.error(f"Index training failed: {e}")
+            raise
 
-        self.index.add_with_ids(embeddings, np.array(ids, dtype=np.int64))
+        try:
+            self.index.add_with_ids(embeddings, np.array(ids, dtype=np.int64))
+        except Exception as e:
+            logger.error(f"Failed to add embeddings to FAISS index: {e}")
+            raise
 
-        for i, (text, frame_id, chunk_id) in enumerate(zip(chunks, frame_numbers, ids)):
-            entry = {
-                "id": chunk_id,
-                "text": text,
-                "frame": frame_id,
-                "length": len(text)
-            }
-            self.metadata.append(entry)
-            self.chunk_to_frame[chunk_id] = frame_id
-            self.frame_to_chunks.setdefault(frame_id, []).append(chunk_id)
+        for i, (chunk, frame_num, chunk_id) in enumerate(zip(chunks, frame_numbers, ids)):
+            try:
+                metadata = {
+                    "id": chunk_id,
+                    "text": chunk,
+                    "frame": frame_num,
+                    "length": len(chunk)
+                }
+                self.metadata.append(metadata)
+
+                # Update mappings
+                self.chunk_to_frame[chunk_id] = frame_num
+                if frame_num not in self.frame_to_chunks:
+                    self.frame_to_chunks[frame_num] = []
+                self.frame_to_chunks[frame_num].append(chunk_id)
+
+            except Exception as e:
+                logger.error(f"Failed to store metadata for chunk {chunk_id}: {e}")
+                # Continue with other chunks
+                continue
 
         logger.info(f"Indexed {len(ids)} chunks successfully")
         return ids
